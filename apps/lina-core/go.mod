@@ -3,8 +3,8 @@ module lina-core
 go 1.25.0
 
 require (
-	github.com/gogf/gf/contrib/drivers/pgsql/v2 v2.10.0
-	github.com/gogf/gf/v2 v2.10.1
+	github.com/gogf/gf/contrib/drivers/pgsql/v2 v2.10.1
+	github.com/gogf/gf/v2 v2.10.2
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/mssola/useragent v1.0.0
 	github.com/redis/go-redis/v9 v9.19.0
@@ -38,7 +38,7 @@ require (
 	github.com/olekukonko/tablewriter v1.1.0 // indirect
 	github.com/richardlehane/mscfb v1.0.6 // indirect
 	github.com/richardlehane/msoleps v1.0.6 // indirect
-	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/tiendc/go-deepcopy v1.7.2 // indirect
 	github.com/xuri/efp v0.0.1 // indirect
 	github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9 // indirect

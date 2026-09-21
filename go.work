@@ -2,5 +2,11 @@ go 1.25.0
 
 use (
 	./apps/lina-core
+	./apps/lina-plugins/linapro-employee-core
+	./apps/lina-plugins/linapro-lark-sdk
+	./apps/lina-plugins/linapro-moka-hcm
+	./apps/lina-plugins/linapro-moka-recruit
+	./apps/lina-plugins/linapro-moka-report-sync
+	./apps/lina-plugins/linapro-recruit-pipeline
 	./hack/tools/linactl
 )
