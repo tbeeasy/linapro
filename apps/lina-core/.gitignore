@@ -15,6 +15,7 @@ manifest/output/
 temp/
 temp.yaml
 manifest/config/config.yaml
+manifest/config/config.online.yaml
 internal/packed/public/*
 !internal/packed/public/.gitkeep
 lina-core

@@ -189,8 +189,75 @@ plugin:
   # 阶段同时加载该插件的 manifest/sql/mock-data SQL。示例数据仅用于演示和
   # 功能验证，不建议生产环境启用。
   autoEnable:
-    # - id: "linapro-ops-demo-guard"
-    #   withMockData: false
-    # - id: "linapro-demo-source"
-    # - id: "linapro-demo-dynamic"
-    #   withMockData: true
+    - id: "linapro-tenant-core"
+    - id: "linapro-org-core"
+    - id: "linapro-monitor-loginlog"
+    - id: "linapro-monitor-operlog"
+    # - id: "linapro-attend-poc"
+    - id: "linapro-employee-core" # 员工系统核心
+    - id: "linapro-moka-hcm" # Moka 人事系统sdk
+    - id: "linapro-moka-report-sync" # Moka 报表数据定时同步到飞书 Bitable
+    - id: "linapro-moka-recruit" # Moka 招聘系统sdk
+    - id: "linapro-recruit-pipeline" # Moka 招聘相关表同步到飞书 Bitable
+
+  moka: &moka
+    moka:
+      apiKey: "" # Moka Basic Auth 用户名（等价 curl -u 'apiKey:'）
+      operatorEmail: "" # 调 interview-information（视频面试链接）接口所需管理员邮箱；recruit-pipeline 需求2 使用
+      entCode: "" # 租户唯一 ID，由 Moka CSM 提供
+      apiCodes: # 每个接口一个独立的 apiCode，由 Moka CSM 分配；新增接口只加一行，无需改代码
+        reportData: ""
+        batchData: ""
+      baseURL: "https://api.mokahr.com" # 可省略，用默认值
+      rsaPrivateKey: | # RSA 私钥 PEM（PKCS#1 或 PKCS#8 均可）
+        -----BEGIN PRIVATE KEY-----
+        -----END PRIVATE KEY-----
+  lark-sync: &lark-sync
+    lark:
+      appId: "" # 飞书应用 appId（cli_xxx 格式）
+      appSecret: "" # 飞书应用 appSecret
+    # ── linapro-moka-report-sync / linapro-moka-recruit 插件凭证 ──
+    # 本文件已被 .gitignore 忽略，可安全填写密钥。
+    # 报表映射（reportMappings）不在这里，走后台 sys_config：
+    #   键：plugin.linapro-moka-report-sync.reportMappings
+    #   值（JSON 数组）：[{"reportId":123456,"appToken":"xxx","tableId":"tblXXX",
+    #                      "uniqueField":"姓名","remark":"员工分布表","enable":true}]
+    # 修改凭证需重启宿主；reportMappings 改动热生效、无需重启。
+  linapro-moka-report-sync: # 报表同步插件专属：飞书凭据与同步参数
+    <<: [*moka, *lark-sync]
+    tenantId: 0 # 读取 sys_config 报表映射所用租户，须与建映射的租户一致
+    intervalMinutes: 56 # 同步间隔（分钟），改此值需重启
+  linapro-recruit-pipeline: # 招聘流水线业务层：复用飞书 appId/appSecret 调 Bitable
+    <<: [*moka, *lark-sync]
+    redis:
+      address: "127.0.0.1:6379" # 必填；为空则插件跳过 AI 待判定入队（优雅降级）
+      pass: "" # 可选，默认空（无 AUTH）
+      db: 0 # 可选，默认 0；逻辑库隔离用
+      ttl_hours: 72 # 可选，默认 72；pending 键安全网 TTL
+    # 定时任务间隔（分钟）
+    candidate_poll_interval_minutes: 59 # 候选人轮询默认间隔 5 分钟
+    interview_sync_interval_minutes: 10 # 面试同步定时任务默认轮询间隔（分钟）
+    report_sync_interval_minutes: 59 # 人才画像评分报表同步定时任务默认轮询间隔（分钟）
+  linapro-employee-core: # 员工核心：飞书多企业 App 凭证（登录换 open_id + 通讯录同步用）
+    # lark_apps 是飞书应用配置数组，一个 LinaPro 租户可横跨多个飞书企业，每个企业一条。
+    # 每条含：app_id（cli_xxx）、secret_key（App Secret）、assoc（可选，默认 false）。
+    # 登录按 URL 参数 ?lark_app_id=cli_xxx 匹配 app_id 选用对应 secret_key；
+    # 同步 job 遍历本数组枚举各企业通讯录回填 lark_identity。凭证不落库，本文件已 .gitignore。
+    # 修改凭证热生效、无需重启（每次登录/同步按需读取）。
+    #
+    # assoc=true：开启关联组织枚举（默认 false=仅枚举 own）。仅对需写多维表格跨租户人员
+    # 字段的 app 置 true——该 app 同步时会额外调关联组织接口采集 assoc 身份行
+    # （id_source='assoc'，仅供写人员字段、不参与登录/考勤反查）；assoc 枚举失败
+    # soft-fail 不阻断 own。
+    emp_jwt_secret: ""
+    sync_interval_minutes: 59 # 同步周期，表达式为 0 %d * * * *（可选，默认0分钟0秒开始执行，1表示1分0秒开始执行；改值需重启）
+    lark_apps:
+      - app_id: "" # 租户a飞书
+        secret_key: ""
+        assoc: true
+      - app_id: "" # 租户b飞书
+        secret_key: ""
+        assoc: false
+    # Moka HCM 凭证：全量同步 job 拉全量员工用。缺任一必填项，同步会以
+    # "incomplete Moka HCM credentials" 报错并跳过（不会拉到员工）。
+    <<: [*moka]
