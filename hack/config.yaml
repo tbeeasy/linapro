@@ -63,7 +63,6 @@ plugins:
       - id: linapro-ai-core
       - id: linapro-org-core
       - id: linapro-tenant-core
-      - id: linapro-attend-poc
   # Example marketplace origin:
   # public-market:
   #   type: marketplace
