@@ -89,6 +89,56 @@
     "platform": {
       "title": "平台管理",
       "tenants": "租户管理"
+    },
+    "eval360Emp": {
+      "region": "360 测评员工端",
+      "login": "员工登录",
+      "todo": "我的待办",
+      "answer": "问卷作答",
+      "result": "提交结果"
+    }
+  },
+  "empLayout": {
+    "title": "员工端",
+    "logout": "退出"
+  },
+  "eval360Emp": {
+    "login": {
+      "exchanging": "正在登录…",
+      "appIdMissing": "缺少飞书应用 id",
+      "appIdMissingHint": "请通过飞书测评卡片入口进入，或在环境变量配置 VITE_EVAL360_LARK_APP_ID。",
+      "errorTitle": "登录失败",
+      "retry": "重试"
+    },
+    "todo": {
+      "title": "我的待办",
+      "empty": "暂无待办",
+      "evaluatee": "被评估人",
+      "role": "角色",
+      "endAt": "截止时间",
+      "status": {
+        "pending": "待填写",
+        "filled": "已填写",
+        "voided": "已作废"
+      }
+    },
+    "answer": {
+      "back": "返回待办",
+      "evaluatee": "被评估人",
+      "notFound": "评价关系不存在或已不可见",
+      "na": "无法评价",
+      "commentPlaceholder": "可填写补充评语",
+      "matrixRowTitle": "评价项",
+      "elapsed": "已用时",
+      "missingRequired": "还有 {count} 道必填题未作答",
+      "submit": "提交",
+      "requiredMissing": "本题为必填"
+    },
+    "result": {
+      "title": "提交成功",
+      "subtitle": "提交时间：{time}",
+      "idempotent": "该评价已提交过，本次为重复提交，结果与首次一致。",
+      "backToTodo": "返回待办"
     }
   }
 }

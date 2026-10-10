@@ -26,14 +26,14 @@ type SysConfigColumns struct {
 	Name             string // Config parameter name
 	Key              string // Config parameter key
 	Value            string // Config parameter value
+	ValueType        string // Parameter value input type: text, textarea, number, boolean, select, radio, multi_select, richtext
+	Options          string // JSON array of {label,value} options for select/radio/multi_select; empty for other types
 	IsBuiltin        string // Built-in record flag: 1=yes, 0=no
+	SystemManageable string // Whether the parameter may be listed and mutated on the system config management page: 1=yes, 0=no (plugin closed-loop settings)
 	Remark           string // Remark
 	CreatedAt        string // Creation time
 	UpdatedAt        string // Modification time
 	DeletedAt        string // Deletion time
-	ValueType        string // Parameter value input type: text, textarea, number, boolean, select, radio, multi_select, richtext
-	Options          string // JSON array of {label,value} options for select/radio/multi_select; empty for other types
-	SystemManageable string // Whether the parameter may be governed on the system parameter admin surface: 1=yes, 0=no
 }
 
 // sysConfigColumns holds the columns for the table sys_config.
@@ -43,14 +43,14 @@ var sysConfigColumns = SysConfigColumns{
 	Name:             "name",
 	Key:              "key",
 	Value:            "value",
+	ValueType:        "value_type",
+	Options:          "options",
 	IsBuiltin:        "is_builtin",
+	SystemManageable: "system_manageable",
 	Remark:           "remark",
 	CreatedAt:        "created_at",
 	UpdatedAt:        "updated_at",
 	DeletedAt:        "deleted_at",
-	ValueType:        "value_type",
-	Options:          "options",
-	SystemManageable: "system_manageable",
 }
 
 // NewSysConfigDao creates and returns a new DAO object for table data access.

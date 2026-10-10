@@ -76,6 +76,9 @@ function resolveRuntimeErrorMessage(responseData: RuntimeErrorResponse) {
   return responseData?.error || responseData?.message || '';
 }
 
+// 导出供员工端请求客户端复用（避免重复实现 messageKey 解析）。
+export { resolveRuntimeErrorMessage };
+
 function createSessionExpiredError(
   responseData: RuntimeErrorResponse = {},
 ): SessionExpiredError {

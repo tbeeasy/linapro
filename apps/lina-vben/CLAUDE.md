@@ -122,6 +122,37 @@ docs/               # VitePress 文档
 - `mergeRouteModules(import.meta.glob(...))` 用于聚合路由模块文件。
 - 动态路由在运行时由权限系统注册。
 
+### 员工端 Region（平台级平行认证）
+
+面向**员工/外部使用者**（无 admin token，走独立短时 JWT 认证链）的页面，统一归入「员工端 region」，复用一套平台级布局与守卫，**新增员工端功能无需改动宿主守卫**。
+
+**认证与会话**：`useEmpAuthStore`（`src/store/emp-auth.ts`）承载员工 empcap 短时 JWT，与 admin 的 `useAccessStore` 生命周期隔离（admin 登出不清员工会话）。该 store 是通用的，所有员工端共用。
+
+**接入机制（按 `route.meta` 标记驱动，不绑定任何业务路径）**：
+
+- `meta.empRegion=true`：声明该子树属员工平行认证链，交由 `setupEmpGuard`（`src/router/guard.ts`）守卫。
+- `meta.empPublic=true`：region 内的公开页（如 login），无员工 JWT 也放行。
+- `meta.empLoginPath`：未认证时的重定向登录页路径。
+- `meta.empLayoutTitle`：（可选）覆盖顶栏标题 i18n 键；缺省用平台默认 `page.empLayout.title`。
+- `meta.ignoreAccess=true`：让随后的 `setupAccessGuard` 放行（员工无 admin token）。
+
+`setupEmpGuard` 注册在 `setupAccessGuard` 之前，只认 `meta.empRegion`；vue-router 会沿匹配链合并 meta，故在 region 根路由声明一次，子路由自动继承。
+
+**涉及文件**：`src/store/emp-auth.ts`（认证 store）、`src/router/guard.ts`（`setupEmpGuard`）、`src/layouts/emp.vue`（极简通用布局，标题/登出均读 meta）、`packages/@core/base/typings/src/vue-router.d.ts`（`RouteMeta` 标记定义）、`page.empLayout.*`（平台级 i18n）。参考实现：`src/router/routes/modules/eval-360-emp.ts`。
+
+**新增一个员工端（以考勤为例）**：只需在 `src/router/routes/modules/` 加一个路由模块，根路由指向 `#/layouts/emp.vue` 并声明：
+
+```ts
+meta: {
+  ignoreAccess: true, hideInMenu: true, hideInTab: true, hideInBreadcrumb: true,
+  empRegion: true,
+  empLoginPath: '/attend/emp/login',
+  // empLayoutTitle: 'page.attendEmp.layout.title', // 可选：专属顶栏标题
+}
+```
+
+login 子路由加 `meta.empPublic=true` 即可。**不新增守卫、不改 `guard.ts`、不依赖其它插件的 i18n。**
+
 ### 适配器模式
 
 每个 UI 库应用在 `src/adapter/` 下提供适配器，将 `@vben/common-ui` 的通用 form/modal/drawer 组件桥接到具体组件库。这是 `web-antd`、`web-ele` 等应用之间的主要差异所在。

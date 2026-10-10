@@ -225,8 +225,7 @@ plugin:
     # 修改凭证需重启宿主；reportMappings 改动热生效、无需重启。
   linapro-moka-report-sync: # 报表同步插件专属：飞书凭据与同步参数
     <<: [*moka, *lark-sync]
-    tenantId: 0 # 读取 sys_config 报表映射所用租户，须与建映射的租户一致
-    intervalMinutes: 56 # 同步间隔（分钟），改此值需重启
+    intervalMinutes: 5 # 同步间隔（分钟），改此值需重启
   linapro-recruit-pipeline: # 招聘流水线业务层：复用飞书 appId/appSecret 调 Bitable
     <<: [*moka, *lark-sync]
     redis:
@@ -235,9 +234,9 @@ plugin:
       db: 0 # 可选，默认 0；逻辑库隔离用
       ttl_hours: 72 # 可选，默认 72；pending 键安全网 TTL
     # 定时任务间隔（分钟）
-    candidate_poll_interval_minutes: 59 # 候选人轮询默认间隔 5 分钟
-    interview_sync_interval_minutes: 10 # 面试同步定时任务默认轮询间隔（分钟）
-    report_sync_interval_minutes: 59 # 人才画像评分报表同步定时任务默认轮询间隔（分钟）
+    candidate_poll_interval_minutes: 5 # 候选人轮询默认间隔 5 分钟
+    interview_sync_interval_minutes: 5 # 面试同步定时任务默认轮询间隔（分钟）
+    report_sync_interval_minutes: 5 # 人才画像评分报表同步定时任务默认轮询间隔（分钟）
   linapro-employee-core: # 员工核心：飞书多企业 App 凭证（登录换 open_id + 通讯录同步用）
     # lark_apps 是飞书应用配置数组，一个 LinaPro 租户可横跨多个飞书企业，每个企业一条。
     # 每条含：app_id（cli_xxx）、secret_key（App Secret）、assoc（可选，默认 false）。
@@ -250,7 +249,7 @@ plugin:
     # （id_source='assoc'，仅供写人员字段、不参与登录/考勤反查）；assoc 枚举失败
     # soft-fail 不阻断 own。
     emp_jwt_secret: ""
-    sync_interval_minutes: 59 # 同步周期，表达式为 0 %d * * * *（可选，默认0分钟0秒开始执行，1表示1分0秒开始执行；改值需重启）
+    sync_interval_minutes: 5 # 同步周期，表达式为 0 %d * * * *（可选，默认0分钟0秒开始执行，1表示1分0秒开始执行；改值需重启）
     lark_apps:
       - app_id: "" # 租户a飞书
         secret_key: ""

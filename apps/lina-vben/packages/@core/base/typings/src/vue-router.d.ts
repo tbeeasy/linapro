@@ -48,6 +48,29 @@ interface RouteMeta {
    */
   domCached?: boolean;
   /**
+   * 是否属于员工端 region（平行认证链）。
+   * 由 setupEmpGuard 统一守卫：region 内除 empPublic 页外，无员工 JWT 一律重定向到 empLoginPath。
+   * 区域根路由声明一次即可，子路由沿 vue-router meta 合并自动继承。
+   * @default false
+   */
+  empRegion?: boolean;
+  /**
+   * 员工端区域内的公开页（如 login），无需员工 JWT 即可访问。
+   * 仅在 empRegion=true 的子树内生效。
+   * @default false
+   */
+  empPublic?: boolean;
+  /**
+   * 员工端区域未认证时的重定向目标（登录页路径）。
+   * 在该 region 根路由上声明一次，子路由继承；缺失时守卫不重定向。
+   */
+  empLoginPath?: string;
+  /**
+   * 员工端极简布局顶栏标题的 i18n 键。
+   * 缺省回退平台级 page.empLayout.title。
+   */
+  empLayoutTitle?: string;
+  /**
    * 路由的完整路径作为key（默认true）
    */
   fullPathKey?: boolean;

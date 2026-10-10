@@ -6,7 +6,7 @@ import { useAccessStore, useUserStore } from '@vben/stores';
 import { startProgress, stopProgress } from '@vben/utils';
 
 import { accessRoutes, coreRouteNames } from '#/router/routes';
-import { useAuthStore, useTenantStore } from '#/store';
+import { useAuthStore, useEmpAuthStore, useTenantStore } from '#/store';
 
 import { generateAccess } from './access';
 import {
@@ -60,6 +60,41 @@ function setupCommonGuard(router: Router) {
     if (preferences.transition.progress) {
       stopProgress();
     }
+  });
+}
+
+/**
+ * 员工端守卫：守卫所有声明了 meta.empRegion 的路由（平行认证链，与 admin 会话隔离）。
+ * 注册在 setupAccessGuard 之前，beforeEach 按注册顺序执行：
+ *   - 非 empRegion 路径直接放行，不影响 admin 守卫；
+ *   - empPublic 页（如 login）始终放行；
+ *   - 其余员工页无员工 JWT 则重定向到该 region 声明的 empLoginPath（带 redirect）。
+ * 员工页 meta.ignoreAccess=true 会让随后的 setupAccessGuard 放行。
+ * 该守卫按 meta 识别 region，不绑定任何业务插件路径：新增员工端（如考勤）只需在自己的
+ * 路由根声明 empRegion/empLoginPath 即可复用，无需改动本文件。
+ */
+function setupEmpGuard(router: Router) {
+  router.beforeEach((to) => {
+    if (!to.meta.empRegion) {
+      return true;
+    }
+    if (to.meta.empPublic) {
+      return true;
+    }
+    const empStore = useEmpAuthStore();
+    if (!empStore.empToken) {
+      const loginPath = to.meta.empLoginPath;
+      // 未声明登录页则不重定向，交由后续守卫处理，避免死循环。
+      if (!loginPath) {
+        return true;
+      }
+      return {
+        path: loginPath,
+        query: { redirect: encodeURIComponent(to.fullPath) },
+        replace: true,
+      };
+    }
+    return true;
   });
 }
 
@@ -205,6 +240,8 @@ function setupAccessGuard(router: Router) {
 function createRouterGuard(router: Router) {
   /** 通用 */
   setupCommonGuard(router);
+  /** 员工端 */
+  setupEmpGuard(router);
   /** 权限访问 */
   setupAccessGuard(router);
 }

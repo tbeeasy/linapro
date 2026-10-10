@@ -89,6 +89,56 @@
     "platform": {
       "title": "Platform",
       "tenants": "Tenants"
+    },
+    "eval360Emp": {
+      "region": "360 Evaluation (Employee)",
+      "login": "Employee Login",
+      "todo": "My Todos",
+      "answer": "Answer",
+      "result": "Submitted"
+    }
+  },
+  "empLayout": {
+    "title": "Employee Portal",
+    "logout": "Logout"
+  },
+  "eval360Emp": {
+    "login": {
+      "exchanging": "Logging in…",
+      "appIdMissing": "Missing Lark app id",
+      "appIdMissingHint": "Enter via the Feishu evaluation card, or set VITE_EVAL360_LARK_APP_ID.",
+      "errorTitle": "Login failed",
+      "retry": "Retry"
+    },
+    "todo": {
+      "title": "My Todos",
+      "empty": "No todos",
+      "evaluatee": "Evaluatee",
+      "role": "Role",
+      "endAt": "Due at",
+      "status": {
+        "pending": "Pending",
+        "filled": "Filled",
+        "voided": "Voided"
+      }
+    },
+    "answer": {
+      "back": "Back to todos",
+      "evaluatee": "Evaluatee",
+      "notFound": "Relation not found or not visible",
+      "na": "N/A",
+      "commentPlaceholder": "Optional comment",
+      "matrixRowTitle": "Item",
+      "elapsed": "Elapsed",
+      "missingRequired": "{count} required question(s) unanswered",
+      "submit": "Submit",
+      "requiredMissing": "This question is required"
+    },
+    "result": {
+      "title": "Submitted successfully",
+      "subtitle": "Submitted at: {time}",
+      "idempotent": "This evaluation was already submitted; the result matches the first submission.",
+      "backToTodo": "Back to todos"
     }
   }
 }

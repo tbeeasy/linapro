@@ -54,7 +54,7 @@ plugins:
     ref: "main"
     items:
       - id: linapro-demo-source
-      - id: linapro-demo-dynamic
+      # linapro-demo-dynamic removed: WASM cross-compilation unsupported on Windows
       - id: linapro-content-notice
       - id: linapro-monitor-loginlog
       - id: linapro-monitor-server
@@ -63,6 +63,7 @@ plugins:
       - id: linapro-ai-core
       - id: linapro-org-core
       - id: linapro-tenant-core
+      - id: linapro-attend-poc
   # Example marketplace origin:
   # public-market:
   #   type: marketplace
