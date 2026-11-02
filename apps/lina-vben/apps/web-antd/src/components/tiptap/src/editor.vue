@@ -25,6 +25,11 @@ const props = withDefaults(
      */
     maxHeight?: number | string;
     placeholder?: string;
+    /**
+     * 空内容时预置「加粗」为激活态：录入即为粗体，工具栏 B 直接高亮，
+     * 不再靠 CSS font-weight 伪装（见 eval-360 题干标题）。
+     */
+    defaultBold?: boolean;
     uploadHandler?: (file: File) => Promise<string>;
     /** 使用场景标识，用于记录文件用途 */
     scene?: string;
@@ -35,6 +40,7 @@ const props = withDefaults(
     height: 300,
     maxHeight: undefined,
     placeholder: $t('pages.editor.placeholder'),
+    defaultBold: false,
   },
 );
 
@@ -48,10 +54,21 @@ const editor = useEditor({
   content: props.modelValue,
   extensions: getExtensions(props.placeholder),
   editable: !props.disabled,
+  onCreate: ({ editor: e }) => {
+    // defaultBold：空文档时激活加粗，使之后录入的文字真正带 bold 标记、工具栏 B 高亮。
+    maybeEnableDefaultBold(e);
+  },
   onUpdate: ({ editor: e }) => {
     emit('update:modelValue', e.getHTML());
   },
 });
+
+// 仅在开启 defaultBold 且文档为空、当前又未处于加粗态时预置一次加粗存储标记。
+function maybeEnableDefaultBold(e: typeof editor.value) {
+  if (props.defaultBold && e && e.isEmpty && !e.isActive('bold')) {
+    e.commands.toggleBold();
+  }
+}
 
 // Sync external modelValue changes
 watch(
@@ -59,6 +76,8 @@ watch(
   (val) => {
     if (editor.value && val !== editor.value.getHTML()) {
       editor.value.commands.setContent(val, false);
+      // 外部把内容清空时（如切换到新的空标题），同样重新预置加粗。
+      maybeEnableDefaultBold(editor.value);
     }
   },
 );
