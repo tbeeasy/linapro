@@ -30,6 +30,23 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
+    "@lina/web-antd#build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "../../../lina-plugins/*/frontend/**"],
+      "outputs": ["dist/**", "dist.zip"]
+    },
+    "@vben-core/design#build": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../../*/src/**",
+        "../../*/*/src/**",
+        "../../../effects/*/src/**",
+        "../../../../apps/web-antd/src/**",
+        "../../../../../lina-plugins/*/frontend/**"
+      ],
+      "outputs": ["dist/**"]
+    },
     "@vben/backend-mock#build": {
       "dependsOn": ["^build"],
       "outputs": [".nitro/**", ".output/**"]
