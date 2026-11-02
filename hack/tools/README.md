@@ -9,6 +9,7 @@ module is still needed.
 | Directory | Purpose |
 | --- | --- |
 | `linactl/` | Provides the cross-platform LinaPro development command entrypoint used by Makefile and Windows `make.cmd` wrappers, including image builds, dynamic plugin `Wasm` artifact builds, and runtime `i18n` governance checks. |
+| `emptoken/` | Local-only dev tool that signs an employee JWT from the local config so developers can act as a given employee on employee-side pages without Lark silent login; standalone module, never compiled into the server. |
 
 ## Placement Rules
 
