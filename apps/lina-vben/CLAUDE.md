@@ -117,8 +117,9 @@ docs/               # VitePress 文档
 
 ### 路由组织
 
-- `src/router/routes/modules/*.ts`：需要权限验证的动态路由。
-- `src/router/routes/core/`：始终可访问的路由（登录页、404 等）。
+- `src/router/routes/modules/*.ts`：需要权限验证的动态路由（管理端登录后才注册）。
+- `src/router/routes/external/*.ts`：启动即注册、跳过管理端权限拦截的外部路由（员工端 region 放这里）。
+- `src/router/routes/core.ts`：始终可访问的路由（登录页、404 等）。
 - `mergeRouteModules(import.meta.glob(...))` 用于聚合路由模块文件。
 - 动态路由在运行时由权限系统注册。
 
@@ -133,14 +134,16 @@ docs/               # VitePress 文档
 - `meta.empRegion=true`：声明该子树属员工平行认证链，交由 `setupEmpGuard`（`src/router/guard.ts`）守卫。
 - `meta.empPublic=true`：region 内的公开页（如 login），无员工 JWT 也放行。
 - `meta.empLoginPath`：未认证时的重定向登录页路径。
-- `meta.empLayoutTitle`：（可选）覆盖顶栏标题 i18n 键；缺省用平台默认 `page.empLayout.title`。
+- `meta.empLayoutTitle`：（可选）覆盖侧栏品牌标题 i18n 键；缺省用平台默认 `page.empLayout.title`。
+- `meta.empMenu=true`：region 根路由的子路由声明后进入员工端布局侧栏菜单（图标 `meta.icon`、排序 `meta.order`）；`empPublic` 页（登录页）不渲染布局外壳。
+- `meta.empActiveMenu`：非菜单页（如作答页）高亮的侧栏菜单路由 name。
 - `meta.ignoreAccess=true`：让随后的 `setupAccessGuard` 放行（员工无 admin token）。
 
 `setupEmpGuard` 注册在 `setupAccessGuard` 之前，只认 `meta.empRegion`；vue-router 会沿匹配链合并 meta，故在 region 根路由声明一次，子路由自动继承。
 
-**涉及文件**：`src/store/emp-auth.ts`（认证 store）、`src/router/guard.ts`（`setupEmpGuard`）、`src/layouts/emp.vue`（极简通用布局，标题/登出均读 meta）、`packages/@core/base/typings/src/vue-router.d.ts`（`RouteMeta` 标记定义）、`page.empLayout.*`（平台级 i18n）。参考实现：`src/router/routes/modules/eval-360-emp.ts`。
+**涉及文件**：`src/store/emp-auth.ts`（认证 store）、`src/router/guard.ts`（`setupEmpGuard`）、`src/layouts/emp.vue`（极简通用布局，标题/登出均读 meta）、`packages/@core/base/typings/src/vue-router.d.ts`（`RouteMeta` 标记定义）、`page.empLayout.*`（平台级 i18n）。参考实现：`src/router/routes/external/eval-360-emp.ts`。
 
-**新增一个员工端（以考勤为例）**：只需在 `src/router/routes/modules/` 加一个路由模块，根路由指向 `#/layouts/emp.vue` 并声明：
+**新增一个员工端（以考勤为例）**：只需在 `src/router/routes/external/` 加一个路由模块（不可放 `modules/`：那里的路由要管理端登录后才注册，员工无会话打开会落到管理端登录页），根路由指向 `#/layouts/emp.vue` 并声明：
 
 ```ts
 meta: {

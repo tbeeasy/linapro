@@ -5,6 +5,7 @@ import { preferences } from '@vben/preferences';
 import { useAccessStore, useUserStore } from '@vben/stores';
 import { startProgress, stopProgress } from '@vben/utils';
 
+import { pendingEmpOauthLoginPath } from '#/api/emp/lark';
 import { accessRoutes, coreRouteNames } from '#/router/routes';
 import { useAuthStore, useEmpAuthStore, useTenantStore } from '#/store';
 
@@ -67,6 +68,8 @@ function setupCommonGuard(router: Router) {
  * 员工端守卫：守卫所有声明了 meta.empRegion 的路由（平行认证链，与 admin 会话隔离）。
  * 注册在 setupAccessGuard 之前，beforeEach 按注册顺序执行：
  *   - 非 empRegion 路径直接放行，不影响 admin 守卫；
+ *   - 飞书授权回调若落在非登录页（回跳地址 # 段被剥离），按 OAuth state 接回其登录页换票；
+ *   - 路由 query 携带 larkAppId（员工卡片链接）时持久化到员工 store，供登录与 401 重登选用应用；
  *   - empPublic 页（如 login）始终放行；
  *   - 其余员工页无员工 JWT 则重定向到该 region 声明的 empLoginPath（带 redirect）。
  * 员工页 meta.ignoreAccess=true 会让随后的 setupAccessGuard 放行。
@@ -75,22 +78,32 @@ function setupCommonGuard(router: Router) {
  */
 function setupEmpGuard(router: Router) {
   router.beforeEach((to) => {
+    const pendingLoginPath = pendingEmpOauthLoginPath();
+    if (pendingLoginPath && to.path !== pendingLoginPath) {
+      return { path: pendingLoginPath, replace: true };
+    }
     if (!to.meta.empRegion) {
       return true;
+    }
+    const empStore = useEmpAuthStore();
+    const larkAppId =
+      typeof to.query.larkAppId === 'string' ? to.query.larkAppId.trim() : '';
+    if (larkAppId) {
+      empStore.setLarkAppId(larkAppId);
     }
     if (to.meta.empPublic) {
       return true;
     }
-    const empStore = useEmpAuthStore();
     if (!empStore.empToken) {
       const loginPath = to.meta.empLoginPath;
       // 未声明登录页则不重定向，交由后续守卫处理，避免死循环。
       if (!loginPath) {
         return true;
       }
+      // redirect 交由 vue-router 编码，登录页读到的即原始 fullPath（勿手工 encode，否则双重编码）。
       return {
         path: loginPath,
-        query: { redirect: encodeURIComponent(to.fullPath) },
+        query: { redirect: to.fullPath },
         replace: true,
       };
     }

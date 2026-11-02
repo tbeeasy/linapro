@@ -93,7 +93,8 @@
     "eval360Emp": {
       "region": "360 测评员工端",
       "login": "员工登录",
-      "todo": "我的待办",
+      "dashboard": "仪表盘",
+      "todo": "我的评估",
       "answer": "问卷作答",
       "result": "提交结果"
     }
@@ -103,6 +104,33 @@
     "logout": "退出"
   },
   "eval360Emp": {
+    "layoutTitle": "360度绩效评估系统",
+    "dashboard": {
+      "title": "仪表盘",
+      "subtitle": "测评项目全局概览与快捷操作入口",
+      "stats": {
+        "total": "测评任务总数",
+        "totalHint": "参与的测评项目",
+        "inProgress": "进行中",
+        "inProgressHint": "待完成评价",
+        "completed": "已完成",
+        "completedHint": "全部评价完成",
+        "evaluations": "评价人次",
+        "evaluationsHint": "已提交 {done} 条评价"
+      },
+      "roles": "我的评价身份",
+      "rolesHint": "统计你以什么身份评价他人",
+      "recent": "最近测评任务",
+      "viewAll": "查看全部",
+      "recentEmpty": "暂无测评任务",
+      "recordProgress": "{done} / {total} 条评价",
+      "roleCount": "作为{role}评价 {count} 人",
+      "status": {
+        "inProgress": "进行中",
+        "completed": "已完成",
+        "closed": "已截止"
+      }
+    },
     "login": {
       "exchanging": "正在登录…",
       "appIdMissing": "缺少飞书应用 id",
@@ -111,34 +139,39 @@
       "retry": "重试"
     },
     "todo": {
-      "title": "我的待办",
-      "empty": "暂无待办",
-      "evaluatee": "被评估人",
-      "role": "角色",
-      "endAt": "截止时间",
-      "status": {
-        "pending": "待填写",
-        "filled": "已填写",
-        "voided": "已作废"
-      }
+      "title": "我的评估",
+      "subtitle": "完成自评和互评任务",
+      "tabPending": "待办评估",
+      "tabDone": "已完成评估",
+      "emptyPending": "暂无待办评估",
+      "emptyDone": "暂无已完成评估",
+      "deadline": "截止日期",
+      "overdue": "已逾期",
+      "submitted": "已提交"
     },
     "answer": {
-      "back": "返回待办",
+      "back": "返回我的评估",
       "evaluatee": "被评估人",
-      "notFound": "评价关系不存在或已不可见",
-      "na": "无法评价",
+      "roleAs": "作为{role}",
+      "notFound": "问卷不存在或已不可见",
+      "progress": "已完成 {done}/{total} 人",
+      "commentColumn": "评语",
       "commentPlaceholder": "可填写补充评语",
-      "matrixRowTitle": "评价项",
-      "elapsed": "已用时",
-      "missingRequired": "还有 {count} 道必填题未作答",
-      "submit": "提交",
-      "requiredMissing": "本题为必填"
+      "commentRequired": "「{evaluatee}」还有标记为必填的评语未填写，请补充后再提交",
+      "submittedTag": "已提交",
+      "closedHint": "评估已截止，仅可查看已提交的内容",
+      "allSubmittedHint": "名下被评估人已全部提交，以下为只读回显",
+      "partialHint": "已提交的被评估人只读显示，本次将提交其余 {count} 人",
+      "prev": "上一题",
+      "next": "下一题",
+      "questionIndex": "第 {current} / {total} 题",
+      "submit": "提交（{count} 人）"
     },
     "result": {
       "title": "提交成功",
-      "subtitle": "提交时间：{time}",
-      "idempotent": "该评价已提交过，本次为重复提交，结果与首次一致。",
-      "backToTodo": "返回待办"
+      "subtitle": "已提交 {count} 人，提交时间：{time}",
+      "idempotent": "这 {count} 人的评价此前已提交，本次为重复提交，结果与首次一致。",
+      "backToTodo": "返回我的评估"
     }
   }
 }

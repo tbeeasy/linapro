@@ -93,7 +93,8 @@
     "eval360Emp": {
       "region": "360 Evaluation (Employee)",
       "login": "Employee Login",
-      "todo": "My Todos",
+      "dashboard": "Dashboard",
+      "todo": "My Assessments",
       "answer": "Answer",
       "result": "Submitted"
     }
@@ -103,6 +104,33 @@
     "logout": "Logout"
   },
   "eval360Emp": {
+    "layoutTitle": "360 Performance Evaluation",
+    "dashboard": {
+      "title": "Dashboard",
+      "subtitle": "Overview of your evaluation projects and quick entry points",
+      "stats": {
+        "total": "Evaluation Tasks",
+        "totalHint": "Projects you take part in",
+        "inProgress": "In Progress",
+        "inProgressHint": "Evaluations to complete",
+        "completed": "Completed",
+        "completedHint": "All evaluations done",
+        "evaluations": "Evaluations",
+        "evaluationsHint": "{done} submitted"
+      },
+      "roles": "My Evaluation Roles",
+      "rolesHint": "The capacity in which you evaluate others",
+      "recent": "Recent Evaluation Tasks",
+      "viewAll": "View All",
+      "recentEmpty": "No evaluation tasks",
+      "recordProgress": "{done} / {total} evaluations",
+      "roleCount": "Evaluating {count} as {role}",
+      "status": {
+        "inProgress": "In Progress",
+        "completed": "Completed",
+        "closed": "Closed"
+      }
+    },
     "login": {
       "exchanging": "Logging in…",
       "appIdMissing": "Missing Lark app id",
@@ -111,34 +139,39 @@
       "retry": "Retry"
     },
     "todo": {
-      "title": "My Todos",
-      "empty": "No todos",
-      "evaluatee": "Evaluatee",
-      "role": "Role",
-      "endAt": "Due at",
-      "status": {
-        "pending": "Pending",
-        "filled": "Filled",
-        "voided": "Voided"
-      }
+      "title": "My Assessments",
+      "subtitle": "Complete your self and peer evaluations",
+      "tabPending": "To Do",
+      "tabDone": "Completed",
+      "emptyPending": "No pending assessments",
+      "emptyDone": "No completed assessments",
+      "deadline": "Deadline",
+      "overdue": "Overdue",
+      "submitted": "Submitted"
     },
     "answer": {
-      "back": "Back to todos",
+      "back": "Back to My Assessments",
       "evaluatee": "Evaluatee",
-      "notFound": "Relation not found or not visible",
-      "na": "N/A",
+      "roleAs": "as {role}",
+      "notFound": "Questionnaire not found or not visible",
+      "progress": "Completed {done}/{total}",
+      "commentColumn": "Comment",
       "commentPlaceholder": "Optional comment",
-      "matrixRowTitle": "Item",
-      "elapsed": "Elapsed",
-      "missingRequired": "{count} required question(s) unanswered",
-      "submit": "Submit",
-      "requiredMissing": "This question is required"
+      "commentRequired": "Some required comments for {evaluatee} are still empty; please fill them in before submitting",
+      "submittedTag": "Submitted",
+      "closedHint": "The evaluation has closed; submitted answers are read-only",
+      "allSubmittedHint": "All evaluatees have been submitted; answers below are read-only",
+      "partialHint": "Submitted evaluatees are read-only; this submission covers the remaining {count}",
+      "prev": "Previous",
+      "next": "Next",
+      "questionIndex": "Question {current} / {total}",
+      "submit": "Submit ({count})"
     },
     "result": {
       "title": "Submitted successfully",
-      "subtitle": "Submitted at: {time}",
-      "idempotent": "This evaluation was already submitted; the result matches the first submission.",
-      "backToTodo": "Back to todos"
+      "subtitle": "Submitted {count} evaluatee(s) at {time}",
+      "idempotent": "These {count} evaluation(s) were already submitted; the result matches the first submission.",
+      "backToTodo": "Back to My Assessments"
     }
   }
 }

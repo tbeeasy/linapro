@@ -71,6 +71,15 @@ interface RouteMeta {
    */
   empLayoutTitle?: string;
   /**
+   * 员工端布局侧栏菜单项：region 根路由的子路由声明后进入侧栏，图标取 meta.icon、排序取 meta.order。
+   * @default false
+   */
+  empMenu?: boolean;
+  /**
+   * 员工端非菜单页（如作答页）高亮的侧栏菜单路由 name。
+   */
+  empActiveMenu?: string;
+  /**
    * 路由的完整路径作为key（默认true）
    */
   fullPathKey?: boolean;
