@@ -1,205 +1,72 @@
-# HTTP server configuration
-# HTTP 服务配置
-# Reference: https://goframe.org/docs/web/server-config-file-template
-# 参考文档：https://goframe.org/docs/web/server-config-file-template
 server:
-  # Server listen address. Optional process env LINAPRO_SERVER_ADDRESS overrides
-  # this value at runtime when non-empty (for example ":18080" or "127.0.0.1:9120").
-  # 服务监听地址。进程环境变量 LINAPRO_SERVER_ADDRESS 非空时在运行时覆盖该值
-  # （例如 ":18080" 或 "127.0.0.1:9120"）。
   address: ":9120"
-  # Whether to dump the route table at startup
-  # 是否在启动时输出路由表
   dumpRouterMap: false
-  # GoFrame graceful HTTP shutdown timeout in seconds
-  # GoFrame HTTP 优雅关停超时时间（秒）
   gracefulShutdownTimeout: 30
-  # LinaPro extension configuration for the GoFrame server component
-  # LinaPro 对 GoFrame server 组件的扩展配置
   extensions:
-    # Access path for the host-built OpenAPI JSON document
-    # 宿主自建 OpenAPI JSON 文档访问路径
     apiDocPath: "/api.json"
 
-# Logging configuration
-# 日志配置
-# Reference: https://goframe.org/docs/core/glog-config
-# 参考文档：https://goframe.org/docs/core/glog-config
 logger:
-  # Log file directory; when empty, logs are written only to the terminal
-  # 日志文件目录；为空时仅输出到终端
   path: ""
-  # Shared filename pattern for business logs and HTTP server logs
-  # 业务日志与 HTTP Server 日志共享的文件名模式
   file: "{Y-m-d}.log"
-  # Log level
-  # 日志级别
   level: "all"
-  # Whether to write logs to standard output
-  # 是否输出到标准输出
   stdout: true
-  # LinaPro extension configuration for the GoFrame logger component
-  # LinaPro 对 GoFrame logger 组件的扩展配置
   extensions:
-    # Whether to enable GoFrame's official JSON structured log handler
-    # 是否开启 GoFrame 官方 JSON 结构化日志 Handler
     structured: false
-    # Whether to include TraceID in logs; defaults to false and is output only when explicitly enabled
-    # 是否在日志中输出 TraceID；默认 false，仅显式开启时输出
     traceIDEnabled: false
 
-# Database configuration
-# 数据库配置
-# Reference: https://goframe.org/docs/core/gdb-config-file
-# 参考文档：https://goframe.org/docs/core/gdb-config-file
 database:
   default:
-    # Default database connection string
-    # 默认数据库连接串
-    # PostgreSQL 14+: pgsql:postgres:postgres@tcp(127.0.0.1:5432)/linapro?sslmode=disable
     link: "pgsql:postgres:postgres@tcp(127.0.0.1:5432)/linapro?sslmode=disable"
-    # PostgreSQL session timezone used when displaying and decoding TIMESTAMPTZ columns.
-    # 显示和解码 TIMESTAMPTZ 字段时使用的 PostgreSQL 会话时区。
     timezone: "Asia/Shanghai"
-    # Whether to enable SQL debug logs; keep disabled by default and enable temporarily for SQL diagnostics
-    # 是否开启 SQL 调试日志；默认关闭，排查 SQL 执行明细时再临时开启
     debug: false
 
-# JWT configuration
-# JWT 配置
 jwt:
-  # JWT signing secret
-  # JWT 签名密钥
-  secret: "lina-jwt-secret-key-change-in-production"
-  # Token validity period as a duration string
-  # Token 有效期（duration 字符串）
+  secret: ""
   expire: 24h
 
-# Online session configuration
-# 在线会话配置
 session:
-  # Session inactivity timeout as a duration string
-  # 会话无活动超时时间（duration 字符串）
   timeout: 24h
-  # Session cleanup job interval as a duration string
-  # 会话清理任务执行间隔（duration 字符串）
   cleanupInterval: 5m
 
-# Scheduler configuration
-# 调度器配置
 scheduler:
-  # Default scheduler timezone; UTC is used when omitted
-  # 默认调度时区；未配置时使用 UTC
-  defaultTimezone: "UTC"
+  defaultTimezone: "Asia/Shanghai"
 
-# Admin workspace routing configuration
-# 管理工作台路由配置
 workspace:
-  # Entry path for the built-in admin workspace. It is startup-scoped and may be
-  # "/" for a dedicated admin domain, but must not use "/api", "/x",
-  # "/x-assets", or other reserved paths.
-  # 内建管理工作台入口路径。该配置在启动期生效；独立管理后台域名场景可使用 "/"，
-  # 但不能使用 "/api"、"/x"、"/x-assets" 或其他保留路径。
   basePath: "/admin"
 
-# Internationalization configuration
-# 国际化配置
 i18n:
-  # Default locale used when the request locale is missing or unsupported
-  # 请求语言缺失或不支持时使用的默认语言
   default: zh-CN
-  # Whether to enable multiple locales; when disabled, only the default locale is used and the frontend hides the language switcher
-  # 是否开启多语言；关闭时仅使用默认语言且前端隐藏语言切换按钮
   enabled: true
-  # Runtime locale display order and native names; comment out a locale to disable it
-  # 运行时语言展示顺序与原生名称；注释某个语言即可停用该语言
   locales:
     - locale: en-US
       nativeName: English
     - locale: zh-CN
       nativeName: 简体中文
 
-# Cluster deployment configuration
-# 集群部署配置
 cluster:
-  # Whether to enable multi-node cluster mode; false means single-node mode by default
-  # 是否开启集群多节点模式；默认 false 表示单节点模式
   enabled: false
-  # Coordination backend for cluster mode. Required when cluster.enabled=true.
-  # Current version supports only "redis". Single-node mode does not require Redis.
-  # 集群模式协调后端。cluster.enabled=true 时必填。当前仅支持 "redis"。
-  # 单节点模式不需要 Redis。
-  coordination: redis
-  election:
-    # Election lock lease duration
-    # 选举锁租约时长
-    lease: 30s
-    # Lease renewal interval, recommended to be one third of the lease duration
-    # 租约续约间隔，建议为租约时长的三分之一
-    renewInterval: 10s
-  redis:
-    # Redis endpoint used by cluster coordination
-    # 集群协调使用的 Redis 地址
-    address: "127.0.0.1:6379"
-    # Redis logical database
-    # Redis 逻辑数据库
-    db: 0
-    # Redis password; leave empty when Redis does not require authentication
-    # Redis 密码；Redis 未启用认证时留空
-    password: ""
-    # Redis connection timeout as a duration string
-    # Redis 连接超时时间（duration 字符串）
-    connectTimeout: 3s
-    # Redis read timeout as a duration string
-    # Redis 读取超时时间（duration 字符串）
-    readTimeout: 2s
-    # Redis write timeout as a duration string
-    # Redis 写入超时时间（duration 字符串）
-    writeTimeout: 2s
 
-# Upload configuration
-# 上传配置
 upload:
-  # Upload file storage directory
-  # 上传文件保存目录
   path: "temp/upload"
-  # Maximum size of a single uploaded file in MB
-  # 单个上传文件大小上限（MB）
   maxSize: 200
 
-# Plugin configuration
-# 插件配置
-plugin:
-  # Whether platform administrators may force uninstall after lifecycle precondition vetoes; force operations must be audited
-  # 是否允许平台管理员在生命周期前置回调否决后强制卸载；强制操作必须审计
-  allowForceUninstall: true
-  # Dynamic plugin configuration
-  # 动态插件相关配置
-  dynamic:
-    # Storage directory for dynamic plugin build artifacts
-    # 动态插件构建产物存储目录
-    storagePath: "temp/output"
-  # Plugin entries to automatically install and enable at startup. Each entry
-  # is a structured object `{id, withMockData}`. `withMockData` defaults to
-  # `false`; set it to `true` to also load the plugin's manifest/sql/mock-data
-  # SQL during the startup auto-install. Mock data is intended for demo and
-  # feature validation, not production use.
-  # 启动时自动安装并启用的插件清单。每个条目使用 `{id, withMockData}` 结构化
-  # 对象。`withMockData` 缺省为 `false`，显式设为 `true` 才会在启动自动安装
-  # 阶段同时加载该插件的 manifest/sql/mock-data SQL。示例数据仅用于演示和
-  # 功能验证，不建议生产环境启用。
-  autoEnable:
-    - id: "linapro-tenant-core"
-    - id: "linapro-org-core"
-    - id: "linapro-monitor-loginlog"
-    - id: "linapro-monitor-operlog"
-    # - id: "linapro-attend-poc"
-    - id: "linapro-employee-core" # 员工系统核心
-    - id: "linapro-moka-hcm" # Moka 人事系统sdk
-    - id: "linapro-moka-report-sync" # Moka 报表数据定时同步到飞书 Bitable
-    - id: "linapro-moka-recruit" # Moka 招聘系统sdk
-    - id: "linapro-recruit-pipeline" # Moka 招聘相关表同步到飞书 Bitable
-
+# ── 共享凭据：只在这里登记一次，下面各插件段用 YAML 别名（*xxx）引用 ──
+# 本段不是任何插件的配置，宿主不读取；须写在 plugin 之前（别名只能引用已出现的锚点）。
+# 别名名写错会导致整个配置文件加载失败，启动即暴露。
+_anchors:
+  # 飞书身份应用（登录 / 通讯录同步；同时作为考勤机器人）。唯一登记处，
+  # 引用方：employee-core.lark_apps、lark-push.push_groups、moka-report-sync、recruit-pipeline。
+  lark_hegs_app_id: &lark_hegs_app_id "" # 霍尔果斯飞书
+  lark_hegs_secret: &lark_hegs_secret ""
+  lark_xj_app_id: &lark_xj_app_id "" # 广州星嘉飞书
+  lark_xj_secret: &lark_xj_secret ""
+  # 飞书 Bitable 读写所用应用（moka-report-sync / recruit-pipeline），用 <<: 合并进插件段。
+  lark_bitable: &lark_bitable
+    lark:
+      appId: *lark_hegs_app_id
+      appSecret: *lark_hegs_secret
+  # Moka 凭据（moka-report-sync / recruit-pipeline / employee-core），用 <<: 合并进插件段。
+  # 注意 <<: 是浅合并：插件段若再写 moka:，会整块替换而不是只覆盖其中某个字段。
   moka: &moka
     moka:
       apiKey: "" # Moka Basic Auth 用户名（等价 curl -u 'apiKey:'）
@@ -211,52 +78,106 @@ plugin:
       baseURL: "https://api.mokahr.com" # 可省略，用默认值
       rsaPrivateKey: | # RSA 私钥 PEM（PKCS#1 或 PKCS#8 均可）
         -----BEGIN PRIVATE KEY-----
+          
         -----END PRIVATE KEY-----
-  lark-sync: &lark-sync
-    lark:
-      appId: "" # 飞书应用 appId（cli_xxx 格式）
-      appSecret: "" # 飞书应用 appSecret
-    # ── linapro-moka-report-sync / linapro-moka-recruit 插件凭证 ──
-    # 本文件已被 .gitignore 忽略，可安全填写密钥。
+
+plugin:
+  allowForceUninstall: false
+  dynamic:
+    storagePath: "temp/output"
+  # DB already initialised manually; withMockData: false to skip duplicate inserts.
+  # tenant-core must come before attend-poc so services.Tenant() is non-nil when
+  # attend-poc registers its routes.
+  autoEnable:
+    - id: "linapro-tenant-core"
+    - id: "linapro-org-core"
+    - id: "linapro-monitor-loginlog"
+    - id: "linapro-monitor-operlog"
+    # - id: "linapro-attend-poc" # 考勤系统
+    - id: "linapro-employee-core" # 员工系统核心
+    - id: "linapro-lark-push" # 飞书消息推送能力（须排在 linapro-employee-core 之后：数组顺序即启用顺序）
+    - id: "linapro-eval-360" # 360 度绩效测评
+    # - id: "linapro-moka-report-sync" # Moka 报表数据定时同步到飞书 Bitable
+    # - id: "linapro-recruit-pipeline" # Moka 招聘相关表同步到飞书 Bitable
+
+  linapro-moka-report-sync: # 报表同步插件专属：飞书凭据与同步参数
     # 报表映射（reportMappings）不在这里，走后台 sys_config：
     #   键：plugin.linapro-moka-report-sync.reportMappings
     #   值（JSON 数组）：[{"reportId":123456,"appToken":"xxx","tableId":"tblXXX",
     #                      "uniqueField":"姓名","remark":"员工分布表","enable":true}]
     # 修改凭证需重启宿主；reportMappings 改动热生效、无需重启。
-  linapro-moka-report-sync: # 报表同步插件专属：飞书凭据与同步参数
-    <<: [*moka, *lark-sync]
-    intervalMinutes: 5 # 同步间隔（分钟），改此值需重启
+    <<: [*moka, *lark_bitable]
+    tenantId: 0 # 读取 sys_config 报表映射所用租户，须与建映射的租户一致
+    intervalMinutes: 59 # 同步间隔（分钟），改此值需重启
   linapro-recruit-pipeline: # 招聘流水线业务层：复用飞书 appId/appSecret 调 Bitable
-    <<: [*moka, *lark-sync]
+    <<: [*moka, *lark_bitable]
     redis:
       address: "127.0.0.1:6379" # 必填；为空则插件跳过 AI 待判定入队（优雅降级）
       pass: "" # 可选，默认空（无 AUTH）
       db: 0 # 可选，默认 0；逻辑库隔离用
       ttl_hours: 72 # 可选，默认 72；pending 键安全网 TTL
     # 定时任务间隔（分钟）
-    candidate_poll_interval_minutes: 5 # 候选人轮询默认间隔 5 分钟
-    interview_sync_interval_minutes: 5 # 面试同步定时任务默认轮询间隔（分钟）
-    report_sync_interval_minutes: 5 # 人才画像评分报表同步定时任务默认轮询间隔（分钟）
+    candidate_poll_interval_minutes: 59 # 候选人轮询默认间隔 5 分钟
+    interview_sync_interval_minutes: 59 # 面试同步定时任务默认轮询间隔（分钟）
+    report_sync_interval_minutes: 59 # 人才画像评分报表同步定时任务默认轮询间隔（分钟）
+  linapro-lark-push: # 飞书消息推送：按调用方分组的推送应用凭据
+    # 分组名 = 调用方插件 ID，各分组用各自的机器人。identity_app_id 一律引用 _anchors 里的身份应用。
+    # 预警 / 通知类分组须用独立推送应用，不得走考勤机器人；考勤分组则直接用身份应用本身发。
+    push_groups:
+      linapro-eval-360:
+        - app_id: &eval360_hegs_app_id "" # 霍尔果斯测评推送应用（card_templates 引用）
+          secret_key: ""
+          name: "360测评助手(霍尔果斯)"
+          identity_app_id: *lark_hegs_app_id
+        - app_id: &eval360_xj_app_id "" # 星嘉测评推送应用（card_templates 引用）
+          secret_key: ""
+          name: "360测评助手(星嘉)"
+          identity_app_id: *lark_xj_app_id
+      # linapro-attend-poc: # 考勤消息：用两个企业的身份应用本身（考勤机器人）发送，前提是应用已开启机器人能力
+      #   - app_id: *lark_hegs_app_id
+      #     secret_key: *lark_hegs_secret
+      #     name: "考勤(霍尔果斯)"
+      #     identity_app_id: *lark_hegs_app_id
+      #   - app_id: *lark_xj_app_id
+      #     secret_key: *lark_xj_secret
+      #     name: "考勤(星嘉)"
+      #     identity_app_id: *lark_xj_app_id
+      inner_notify: # 内网消息通知
+        - app_id: ""
+          secret_key: ""
+          name: "内网消息通知"
+          identity_app_id: *lark_xj_app_id
+      outer_notify: # 外网消息通知
+        - app_id: ""
+          secret_key: ""
+          name: "外网消息通知"
+          identity_app_id: *lark_hegs_app_id
+    # 对外 HTTP 接口（/open/v1）的 HMAC 签名凭据不在本文件配置：在后台「系统设置 → 飞书推送凭据」
+    # 维护（app_key / secret / 绑定分组 / 启停），每次请求查库，修改即时生效。
+    alert: # 部署与数据缺陷告警（可选）。留空则只写日志、不推群
+      app_id: "" # 告警专用飞书应用，不参与业务推送
+      secret_key: ""
+      chat_id: "" # 告警群；应用须已被拉进该群且开了机器人能力
+      interval: "30m" # 同一告警的防抖窗口，缺省 30m
   linapro-employee-core: # 员工核心：飞书多企业 App 凭证（登录换 open_id + 通讯录同步用）
-    # lark_apps 是飞书应用配置数组，一个 LinaPro 租户可横跨多个飞书企业，每个企业一条。
-    # 每条含：app_id（cli_xxx）、secret_key（App Secret）、assoc（可选，默认 false）。
-    # 登录按 URL 参数 ?lark_app_id=cli_xxx 匹配 app_id 选用对应 secret_key；
-    # 同步 job 遍历本数组枚举各企业通讯录回填 lark_identity。凭证不落库，本文件已 .gitignore。
-    # 修改凭证热生效、无需重启（每次登录/同步按需读取）。
-    #
-    # assoc=true：开启关联组织枚举（默认 false=仅枚举 own）。仅对需写多维表格跨租户人员
-    # 字段的 app 置 true——该 app 同步时会额外调关联组织接口采集 assoc 身份行
-    # （id_source='assoc'，仅供写人员字段、不参与登录/考勤反查）；assoc 枚举失败
-    # soft-fail 不阻断 own。
     emp_jwt_secret: ""
-    sync_interval_minutes: 5 # 同步周期，表达式为 0 %d * * * *（可选，默认0分钟0秒开始执行，1表示1分0秒开始执行；改值需重启）
-    lark_apps:
-      - app_id: "" # 租户a飞书
-        secret_key: ""
+    sync_interval_minutes: 59 # 同步周期，表达式为 0 %d * * * *（可选，默认0分钟0秒开始执行，1表示1分0秒开始执行；改值需重启）
+    lark_apps: # 凭据登记在 _anchors，这里只引用
+      - app_id: *lark_hegs_app_id # 霍尔果斯飞书
+        secret_key: *lark_hegs_secret
         assoc: true
-      - app_id: "" # 租户b飞书
-        secret_key: ""
+      - app_id: *lark_xj_app_id # 广州星嘉飞书
+        secret_key: *lark_xj_secret
         assoc: false
     # Moka HCM 凭证：全量同步 job 拉全量员工用。缺任一必填项，同步会以
     # "incomplete Moka HCM credentials" 报错并跳过（不会拉到员工）。
     <<: [*moka]
+  linapro-eval-360:
+    todo_h5_url: "https://xj-aass.luckystar001.top/admin/#/eval-360/emp/todo" # 生产是 hash 路由
+    # 卡片模板按推送应用分别配置（模板归属具体应用、跨企业不可复用，无全局兜底）。
+    # app_id 引用上面 push_groups.linapro-eval-360 的推送应用；template_version 留空=模板当前发布版本。
+    card_templates:
+      - app_id: *eval360_hegs_app_id # 霍尔果斯测评推送应用
+        template_id: ""
+      - app_id: *eval360_xj_app_id # 星嘉测评推送应用
+        template_id: "" # TODO 待替换为广州星嘉应用下的模板 ID
