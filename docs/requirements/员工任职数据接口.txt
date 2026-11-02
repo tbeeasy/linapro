@@ -1,0 +1,327 @@
+员工任职数据接口(权限)
+请求示例：curl --location --request POST 'https://api.mokahr.com/api-platform/hcm/oapi/v2/batch/data?userName=您的邮箱地址&entCode=您的租户entCode&apiCode=您配置的open-apiCode&timestamp=当前时间戳&nonce=任意随机值&sign=签名' \
+--header 'Authorization: Basic 您的apiKey的Base64' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "uuidList":[],
+    "pageSize": 200,
+    "pageNum": 1
+}'
+
+返回值示例：
+{
+  "code": 200,
+  "msg": "操作成功",
+  "data": {
+    "labelList": null,
+    "pageSize": 1,
+    "pageNum": 1,
+    "total": 3,
+    "size": 1,
+    "list": [
+      {
+        "highest_degree_id": 1,
+        "country": "中国",
+        "mentor": "William001",
+        "job_create_time": "2022-04-20T15:40:44.000+0800",
+        "contact_phone": "8888",
+        "manage_duty_level_id": 10030,
+        "months_of_probation_id": 7,
+        "highest_education": "研究生",
+        "employee_no": "ae000344",
+        "highest_degree": "博士",
+        "leave_detail_reason": "",
+        "uuid": 148257,
+        "baseInfo_create_time": "2022-04-20T15:40:44.000+0800",
+        "path": "零零四/IM同步测试测试测试",
+        "office_address_id": 67,
+        "id_no": "235234534543534",
+        "duty_id": 201,
+        "realname_pinyin": "banbeiyuese",
+        "period_end_date": "2011-09-29",
+        "office_email": "1792442177@qq.com",
+        "household_address": "北京市北京市东城区xxx",
+        "employee_status": "在职",
+        "contact_address_county_code": "130304",
+        "profession": "软件工程",
+        "create_time": "2022-04-20T15:40:44.000+0800 (即将下线!!!)",
+        "create_time_tsp": 1666070560000,
+        "months_of_probation": "6个月",
+        "leave_info_leave_event_reason": "",
+        "address_county_code": "110101",
+        "telephone": "19968712234",
+        "contact_address_city_code": "130300",
+        "contact_address_province_code": "130000",
+        "native_place": "北京市北京",
+        "employee_type": "正式",
+        "nationality": "汉族",
+        "household_county_code": "110101",
+        "marital_status_id": 3,
+        "leave_handle_remark": "",
+        "employee_type_id": 1,
+        "report_leader": "William001",
+        "begin_work_time": "2021-10-07",
+        "adjust_begin_work_time": "2021-10-07",
+        "address_province_code": "110000",
+        "country_id": 1,
+        "employee_status_id": 1,
+        "end_probation_date": "2022-11-01",
+        "baseInfo_update_time": "2022-10-18T13:22:40.000+0800",
+        "birthday": "2016-10-21",
+        "household_province_code": "110000",
+        "gender": "女",
+        "political_status_id": 1,
+        "is_probation": "是",
+        "nationality_id": 1,
+        "social_relation_id": 1,
+        "id_no_id_type": "护照",
+        "social_relation": "父母",
+        "household_city_code": "110000",
+        "realname_initials": "bbys",
+        "manage_duty_level": "G-P1",
+        "update_time": "2022-04-20T15:40:44.000+0800 (即将下线!!!)",
+        "update_time_tsp": 1666070560000,
+        "political_status": "中共党员",
+        "duty_level": "P1",
+        "employeeAvatar": "https://hcm-staging.oss-cn-beijing.aliyuncs.com/imgs/uploaded/headimgs/1e313121fd5957ccf3116c05982048b1.jpeg",
+        "id_type": 2,
+        "department": "IM同步测试测试测试",
+        "contact_address": "河北省秦皇岛市北戴河区8888",
+        "address_city_code": "110000",
+        "on_boarding_date": "2011-03-30",
+        "contact_name": "67676",
+        "address": "北京市北京市东城区xxx小区",
+        "is_handicap": "是",
+        "department_id": "30774",
+        "job_update_time": "2022-10-12T00:00:39.000+0800",
+        "highest_education_id": 2,
+        "gender_id": 2,
+        "household_type": "本地农业",
+        "leave_event_type": "",
+        "realname": "摩小卡",
+        "report_leader_id": 63238,
+        "graduate_school": "清华大学",
+        "mentor_id": 63238,
+        "marital_status": "离异",
+        "duty_level_id": 126,
+        "office_address": "保定",
+        "duty": "java",
+        "household_type_id": 1,
+        "bank_card":"34567890098765678",
+        "bank_card_bank_card_bank":"工商银行",
+        "bank_card_bank_card_type":"储蓄卡",
+        "bank_card_type":1,
+        "bank_card_bank":1,
+        "attachment_leaving_certificate": [
+          {
+            "id": 20048,
+            "name": "编制模板 - 2022-10-10T111901.205.xlsx",
+            "url": "https://hcm-staging.oss-cn-beijing.aliyuncs.com/form/attachment/0e7915fd4435fa989a87bbf328add0c2.xlsx?Expires=1666160105&OSSAccessKeyId=xxx&Signature=yyy"
+          },
+          {
+            "id": 20052,
+            "name": "3.png",
+            "url": "https://hcm-staging.oss-cn-beijing.aliyuncs.com/form/attachment/88f80d80e6b075c022d81001e5e7e38b.png?Expires=1666160105&OSSAccessKeyId=xxx&Signature=yyy"
+          }
+        ],
+        "personal_email": "me4idbjiv@test.qyzhg.com",
+        "id_card_back": [
+          {
+            "id": 20049,
+            "name": "1.png",
+            "url": "https://hcm-staging.oss-cn-beijing.aliyuncs.com/form/attachment/88f80d80e6b075c022d81001e5e7e38b.png?Expires=1666160105&OSSAccessKeyId=xxx&Signature=yyy"
+          },
+          {
+            "id": 20055,
+            "name": "2.png",
+            "url": "https://hcm-staging.oss-cn-beijing.aliyuncs.com/form/attachment/88f80d80e6b075c022d81001e5e7e38b.png?Expires=1666160105&OSSAccessKeyId=xxx&Signature=yyy"
+          }
+        ],
+        "attachment_id": [
+          {
+            "id": 20042,
+            "name": "企业微信截图_16653152249863.png",
+            "url": "https://hcm-staging.oss-cn-beijing.aliyuncs.com/form/attachment/8394eb785862918a5e76120656d7095d.png?Expires=1666160105&OSSAccessKeyId=xxx&Signature=yyy"
+          },
+          {
+            "id": 20051,
+            "name": "1.png",
+            "url": "https://hcm-staging.oss-cn-beijing.aliyuncs.com/form/attachment/88f80d80e6b075c022d81001e5e7e38b.png?Expires=1666160105&OSSAccessKeyId=xxx&Signature=yyy"
+          }
+        ],
+        "attachment_profile": [
+          {
+            "id": 20043,
+            "name": "企业微信截图.png",
+            "url": "https://hcm-staging.oss-cn-beijing.aliyuncs.com/form/attachment/e8ea79caa4c154ef42770ca532d63c2b.png?Expires=1666160105&OSSAccessKeyId=xxx&Signature=yyy"
+          },
+          {
+            "id": 20053,
+            "name": "4.png",
+            "url": "https://hcm-staging.oss-cn-beijing.aliyuncs.com/form/attachment/88f80d80e6b075c022d81001e5e7e38b.png?Expires=1666160105&OSSAccessKeyId=xxx&Signature=yyy"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+
+
+
+realname	String	员工姓名	
+uuid	Long	员工在People系统的唯一id	
+employee_no	String	员工工号	由HR在People中设置的
+realname_pinyin	String	员工姓名全拼	
+realname_initials	String	员工姓名全拼首字母	
+department	String	员工所在的部门名称	
+└department_id	Long	部门在People系统的唯一id	此id与部门接口返回的node_uid一致
+report_leader	String	直接上级	
+└report_leader_id	Long	直接上级在People系统的唯一id	此id与员工接口返回的uuid一致
+office_address	String	工作地点	
+└office_address_id	Long	工作地点在People系统的唯一id	示例：1256
+employee_type	String	员工类型	4种系统预置字段
+"正式"
+"实习生"
+"劳务派遣"
+"兼职"
+└employee_type_id	Long	员工类型在People系统的唯一id	枚举值：
+1：正式
+2：实习生
+3：劳务派遣
+4：兼岗
+employee_status	String	员工状态	4种状态："在职"
+"离职"
+"试用"
+"待入职"
+└employee_status_id	Long	员工类型在People系统的唯一id	1:在职
+2:离职
+3:试用
+4:待入职
+duty	String	职务	职务名称
+└duty_id	Long	职务在People系统的唯一id	此id与职务接口返回的id一致
+position	String	职位	职位名称
+└position_id	Long	职位在People系统的唯一id	此id与职位接口返回的id一致
+duty_level	String	职级	职级名称
+└duty_level_id	Long	职级在People系统的唯一id	此id与职级接口返回的id一致
+manage_duty_level	String	管理职级	
+└manage_duty_level_id	Long	管理职级id	
+id_no	String	证件号码	
+└id_no_id_type	String	证件类型	与证件号码id_no是关联字段，两者同时出现
+示例：身份证、护照、港澳来往内地通行证、台湾来往内地通行证、外国人永久居留证
+└id_type	String	证件类型的枚举类	1：表示身份证
+2：表示护照
+3：港澳来往内地通行证
+4`：表示台湾来往内地通行证<br>5`：表示外国人永久居留证
+nickname	String	花名	
+gender	String	性别	"女" or "男"
+└gender_id	String	性别id	1：男
+2：女
+birthday	String	出生日期	该字段有1种时间形式：
+1."yyyy-MM-dd"
+begin_work_time	String	首次参加工作时间	该字段有1种时间形式：
+1."yyyy-MM-dd"
+adjust_begin_work_time	String	调整后工龄起算日期	该字段有1种时间形式：
+1."yyyy-MM-dd"
+period_end_date	String	试用截止日期	该字段有1种时间形式：
+1."yyyy-MM-dd"
+on_boarding_date	String	入职日期	该字段有1种时间形式：
+1."yyyy-MM-dd"
+end_probation_date	String	转正日期	该字段有1种时间形式：
+1."yyyy-MM-dd"
+leave_date	String	离职日期	该字段有1种时间形式：
+1."yyyy-MM-dd"
+leave_event_type	String	离职类型	主动离职、被动离职
+leave_detail_reason	String	离职原因	
+leave_handle_remark	String	离职办理备注	
+company_start_date	String	司龄起算日期	该字段有1种时间形式：
+1."yyyy-MM-dd"
+employeeAvatar	String	员工头像	hr在花名册上传的员工头像（注意：不是用户上传的头像）
+months_of_probation	String	试用期月数	
+└months_of_probation_id	int	试用期的id编号	
+personal_email	String	个人邮箱	
+telephone	String	个人电话的号码	在labelList里"type": 7，表示手机号类型
+└telephone_country_code	String	个人电话的区号	如："+86"
+office_email	String	公司邮箱	
+address	String	居住地址	
+contact_address	String	联系人地址	例如：河北省秦皇岛市北戴河区8888
+└contact_address_province_code	String	联系人地址省编码	
+└contact_address_city_code	String	联系人地址市编码	
+└contact_address_county_code	String	联系人地址区编码	
+native_place	String	籍贯	
+└native_place_id	Long	籍贯id	
+nationality	String	民族	
+└nationality_id	int	民族id	
+marital_status	String	婚姻状况	
+└marital_status_id	int	婚姻状况id	1：表示已婚
+2：表示未婚
+3：表示离异
+4：表示丧偶
+country	String	国籍	
+└country_id	int	国籍id	1：表示中国
+political_status	String	政治面貌	例如：中共党员
+└political_status_id	int	政治面貌id	枚举值：
+1：中共党员
+2：中共预备党员
+3：共青团员
+4：民革党员
+5：民盟盟员
+6：民建会员
+7：民进会员
+8：农工党党员，9：致公党党员
+10：九三学社社员
+11：台盟盟员
+12：无党派人士
+13：群众
+highest_degree	String	最高学位	在labelList里"type": 5，表示单选
+└highest_degree_id	int	最高学位的id标识	可选值：
+1：表示博士
+2：表示研究生
+3：表示学士
+4：表示无学位
+household_address	String	户籍地址	
+household_type	String	户籍类型	在labelList里"type": 5，表示单选
+└household_type_id	String	户籍类型的id标识	可选值：
+1：表示本地农业
+2：表示外地农业
+3：表示本地城镇
+4：表示外地城镇
+profession	String	所学专业	
+highest_education	String	最高学历	
+└highest_education_id	int	最高学历的id标识	可选值：1：表示博士
+2：表示研究生
+3：表示本科
+4：表示大专
+5：中专
+6：表示高中
+7：表示初中
+8：表示小学
+9：表示无
+graduate_school	String	毕业院校	
+contact_name	String	联系人姓名	
+contact_phone	String	联系人电话的号码	
+social_relation	String	与员工关系	例如：父母
+└social_relation_id	int	与员工关系id	1：父母
+2：配偶
+3：子女
+4：朋友
+attachment_id	Array	身份证人像面附件	
+└id	Long	附件唯一标识	
+└name	String	文件名称	
+└url	String	文件地址	24小时过期
+attachment_bank_card	Array	银行卡附件	
+└id	Long	附件唯一标识	
+└name	String	文件名称	
+└url	String	文件地址	24小时过期
+attachment_leaving_certificate	Array	前公司离职证明附件	
+└id	Long	附件唯一标识	
+└name	String	文件名称	
+└url	String	文件地址	24小时过期
+attachment_profile	Array	简历附件	
+└id	Long	附件唯一标识	
+└name	String	文件名称	
+└url	String	文件地址	24小时过期
+id_card_back	Array	身份证国徽面附件	
+└id	Long	附件唯一标识	
+└name	String	文件名称	
+└url	String	文件地址	24小时过期

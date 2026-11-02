@@ -1,0 +1,1427 @@
+鉴权验证说明（Basic Auth）
+请求示例
+
+$ curl https://api.mokahr.com/api-platform/v1/archiveReasons \
+   -u 'your_api_key:'
+注： 1、请将'your_api_key'替换为你的API Key来进行测试 2、curl使用-u flag来传入basic auth的验证信息。由于password为空，username后面的冒号:是必要的。
+
+你需要使用Moka为你的机构生成的私密API Key来验证访问Moka API的请求。如有需要，请向你的CSM（客户成功经理）索取API Key。
+
+ 注意API Key有访问所有API的权限，所以一定要妥善保存，切勿泄露。如果需要重置API Key，也可以联系CSM。
+Moka API的验证基于HTTP Basic Auth。发送请求时，需要将API Key作为basic auth的username提供，password不需要提供。测试时请确认发送的HTTP请求里有如下header：
+
+Authorization: Basic <base64("username:password")>
+
+所有的请求都必须通过HTTPS发送。
+
+Oauth2鉴权说明（Oauth2）
+如果您需要和 Moka 开放平台对接获取隐私数据（如申请、职位信息等），为保证数据的安全与隐私，您需要取得授权才可访问，即获取访问用户数据的授权令牌 accessToken。该流程采用国际通用的 OAuth2.0 标准协议作为用户身份验证与授权协议。 OAuth2.0协议规范
+
+前期准备
+您需要使用 Moka 为你的机构生成的私密 clientId 和 clientSecret，通过clientId 和 clientSecret 获取accessToken。 通过accessToken访问 Moka API 的请求。如有需要，请向你的 CSM（客户成功经理）索取 clientId 和 clientSecret。
+
+获取访问凭证accessToken
+调用接口令牌 accessToken 有效期为 2 小时。
+1、当有效期大于等于 30 分钟时，调用获取 accessToken 接口返回老的 accessToken。
+2、当有效期小于 30 分钟时，调用获取 accessToken 接口返回新的 accessToken。此时新老两个 accessToken 都有效。
+
+请求样例
+
+curl  --location --request POST 'https://api.mokahr.com/api-platform/v1/auth/oauth2/getToken' \
+--header 'Content-Type: application/json' \
+--data-raw '
+
+{
+   "clientID": "moka_Z1Y99DlokiOGXmw8",
+   "clientSecret": "ell2Wl2dwUQ7no75BAsLrwtUaPw8W0tAEoYXv13ibRoV",
+   "grantType": "client_credentials"
+}'
+响应样例
+
+{
+    "code": 0,
+    "msg": "成功",
+    "data": {
+        "accessToken": "a-685ca366-45e8-4025-9825-9840280ecd39",
+        "expiresIn": 6824,
+        "tokenType": "Bearer"
+    }
+}
+错误响应样例
+
+{
+    "code": 110020,
+    "msg": "unauthorized_client",
+    "data": {}
+}
+HTTP 请求
+POST https://api.mokahr.com/api-platform/v1/auth/oauth2/getToken
+
+Body参数
+字段	类型	是否必填	描述
+clientID	String	是	应用唯一标识，联系CSM获取
+clientSecret	String	是	应用秘钥，联系CSM获取
+grantType	String	是	授权类型 ，值为client_credentials
+返回参数
+字段	类型	描述
+code	integer	0：成功，其他:错误
+msg	String	错误信息
+data	Object	
+data.accessToken	String	接口访问凭证
+data.tokenType	String	accessToken的类型目前只支持Bearer
+data.expiresIn	Number	accessToken过期时间，单位：秒
+错误码
+code	errorMessage	错误描述
+110020	unauthorized_client	clientID或者clienSecret无效，请联系CSM获取有效的clientID或者clienSecret
+调用业务接口
+请求样例
+
+curl --location --request PUT 'https://api.mokahr.com/api-platform/v2/departments' \
+--header 'Authorization: Bearer <accessToken>' \
+--header 'Content-Type: application/json' \
+--data '{
+       "departments": [
+        { "departmentCode": "ididid1", "name": "namenamename1", "parentCode": "ididid1", "sequence": 0 },
+        { "departmentCode": "ididid2", "name": "namenamename2", "parentCode": "ididid2" },
+        { "departmentCode": "ididid2", "name": "namenamename2", "parentCode": "ididid2", "type": 2 },
+        { "departmentCode": "ididid3", "name": "namenamename3", "parentCode": "0"}
+    ]
+  }'
+调用业务接口时，需要在Header中增加Authorization参数，值为Bearer <accessToken> 。 以调用新增组织架构接口为例，请求示例如下：
+
+
+候选人获取改为通过webhook事件来获取新的候选人
+REST方式的说明
+推送数据样例：
+{
+  "id": "f353e5ce-17e0-4783-bee4-4a6b734b20fe",
+  "event": "pushCandidate",
+  "triggeredAt": 1505296287,
+  "data": {
+    "applicationId": 12798,
+    "candidateId": 8030,
+    "moved_at": "2018-08-03T10:25:12.000Z",
+    "name": "邵旭冬",
+    "phone": "18600000000",
+    "email": "shaodong@example.com",
+    "gender": "男",
+    "created_at": "2018-08-03T10:25:12.000Z",
+    "birthYear": 1992,
+    "birthDate":"2020-03-17T00:00:00.000Z",
+    "nationality": "中国",
+    "experience": 7,
+    "ethnic": "汉族",
+    "forwardLocation": null,
+    "salary": "",
+    "aimSalary": null,
+    "certificateType": 1,
+    "citizenId": "410322199202152910",
+    "nativePlace": "北京市朝阳区",
+    "location": "北京",
+    "source": "其它渠道",
+    "sourceList": [
+      {
+        "name": "其它渠道",
+        "isBuiltin": true
+      }, {
+        "id": 4,
+        "name": "其它",
+        "isBuiltin": true
+      }
+    ],
+    "sourceType": 1,
+    "academicDegree": "本科",
+    "lastSpeciality": "人力资源管理",
+    "married": "未婚",
+    "jobCommitment": "全职",
+    "hireMode": 1,
+    "finishedAt": "2019-08-23T16:00:00.000Z",
+    "resumeKey": "962bcac5-7671-4cbb-bbd7-376177703674.doc",
+    "stageName": "待入职",
+    "probation": null,
+    "lastCompany": null,
+    "operator": {
+      "name": "李明",
+      "email": "liming@example.com",
+      "phone": "18600000001",
+      "number": "A001"
+    },
+    "lastCompany": "郑州麦田伙伴科技有限公司",
+    "nativePlaceCode": 310107,
+    "nationalityCode": 3,
+    "genderCode": 0,
+    "academicDegreeCode": 7,
+    "ethnicCode": 2,
+    "job": {
+      "title": "黑龙江-资易通业务线-催收部-CEO",
+      "department": "运维部",
+      "departmentCode": "6758",
+      "parentDepartmentCode": "6836",
+      "departmentPath": "信息物流中心/运维部",
+      "competencyType": "产品类",
+      "jobId": "39d3d5c9-949e-40d4-8d4b-5cb247d327a8",
+      "jobDescription": "<p>职位表述职位表述</p>",
+      "customFields": [
+        {
+          "name": "职位-年月",
+          "value": "2019-01"
+        }
+      ]
+    },
+    "jobManager": {
+      "name": "test",
+      "email": "11q1@qq.com",
+      "phone": "17611232222",
+      "employeeId": "01"
+    },
+    "officeweb365Url": "http://www.officeweb365Url.com",
+    "officeweb365PrintUrl": "http://www.officeweb365PrintUrl.com",
+    "resumePdfMeta": null,
+    "portraitUrl": "http://www.portraitUrl.com",
+    "resumeUrl": "https://moka-test.oss-cn-beijing.aliyuncs.com/962bcac5-7671-4cbb-bbd7-376177703674.doc?OSSAccessKeyId=LTAIoEXIQWCGUAZO&Expires=1540374892&Signature=M1KKiwjG240uTmqK4qSbmRAU+yI=",
+    "educationInfo": [
+      {
+        "startDate": "2011-09",
+        "endDate": "2015-06",
+        "now": false,
+        "school": "北京邮电大学",
+        "speciality": "土木工程",
+        "academicDegree": "本科"
+      }
+    ],
+    "experienceInfo": [
+      {
+        "startDate": "2016-03",
+        "endDate": "2017-09",
+        "now": true,
+        "company": "北京有利科技有限公司",
+        "title": "高级Java工程师",
+        "summary": "工作职责XXX",
+        "reasonForLeaving": "离职原因XXX",
+        "underlingNumber": "5"
+      },
+      {
+        "startDate": "2015-05",
+        "endDate": "2016-03",
+        "now": false,
+        "company": "北京水果电商技术有限公司",
+        "title": "java工程师",
+        "summary": "工作职责XXX",
+        "reasonForLeaving": "离职原因XXX",
+        "underlingNumber": "5"
+      }
+    ],
+    "customFields": [
+      {
+        "name": "身高",
+        "value": 175,
+        "section": "educationInfo",
+        "index": 0
+      },
+      {
+        "name": "联系人姓名",
+        "value": "张三",
+        "section": "紧急联系人",
+        "index": 0
+      },
+      {
+        "name": "联系人关系",
+        "value": "父亲",
+        "section": "紧急联系人",
+        "index": 0
+      },
+      {
+        "name": "联系人电话",
+        "value": "13012341234",
+        "section": "紧急联系人",
+        "index": 0
+      },
+      {
+        "name": "联系人邮箱",
+        "value": "zs@demo.com",
+        "section": "紧急联系人",
+        "index": 0
+      },
+      {
+        "name": "联系人姓名",
+        "value": "张小四",
+        "section": "紧急联系人",
+        "index": 1
+      },
+      {
+        "name": "联系人关系",
+        "value": "兄弟",
+        "section": "紧急联系人",
+        "index": 1
+      },
+      {
+        "name": "联系人电话",
+        "value": "130567585678",
+        "section": "紧急联系人",
+        "index": 1
+      },
+      {
+        "name": "联系人邮箱",
+        "value": "zxs@demo.com",
+        "section": "紧急联系人",
+        "index": 1
+      },
+      {
+        "name": "预计到岗日期",
+        "value": "2018-4-23T09:10:26.000Z",
+        "now": false,
+        "section": "basicInfo",
+        "index": 1
+      },
+      {
+        "name": "实习期",
+        "value": {
+          "startDate": "2004-01",
+          "endDate": "2005-01"
+        },
+        "now": true,
+        "section": "basicInfo",
+        "index": 1
+      }
+    ],
+    "interviewers": [
+      {
+        "name": "李明",
+        "email": "liming@example.com",
+        "phone": "18600000001",
+        "round": 1,
+        "roundName": "初试",
+        "roundOtherName": {
+          "en-US": {
+            "name": "1st round"
+          }
+        },
+        "startTime": "2018-08-03T10:25:12.000Z",
+        "createdAt": "2018-08-03T10:20:12.000Z",
+        "locationCountry": "中国",
+        "locationCityId": 141129,
+        "locationAddress": "滨海镇小山村",
+        "resultName": "非常不满意",
+        "resultType": 0,
+        "feedback": "水平一般",
+        "feedbackTemplateResult": [
+          {
+            "type": 1,
+            "title": "题目1的标题",
+            "description": "题目1的描述",
+            "calcScoreType": "total",
+            "needReason": true,
+            "result": 9,
+            "scoreType": 1,
+            "subjects": [
+              {
+                "type": 1,
+                "title": "小题1的标题",
+                "description": "小题1的描述",
+                "result": 9,
+                "reason": "小题1的打分综述"
+              }
+            ]
+          },
+          {
+            "type": 2,
+            "title": "题目2的标题",
+            "description": "题目2的描述",
+            "result": 1,
+            "subjects": [
+              {
+                "title": "小题1的标题",
+                "description": "小题1的描述",
+                "result": 1,
+                "options": ["选项1", "选项2"],
+                "reason": "小题1的打分综述"
+              }
+            ]
+          },
+          {
+            "type": 3,
+            "title": "题目3的标题",
+            "description": "题目3的描述",
+            "subjects": [
+              {
+                "title": "小题1的标题",
+                "description": "小题1的描述",
+                "result": "技术很棒",
+                "reason": "小题1的打分综述"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "王宏",
+        "email": "wanghong@example.com",
+        "phone": "18600000002",
+        "round": 2,
+        "roundName": "复试",
+        "roundOtherName": {
+          "en-US": {
+            "name": "2st round"
+          }
+        },
+        "startTime": "2018-08-03T10:25:12.000Z",
+        "createdAt": "2018-08-03T10:20:12.000Z",
+        "resultName": "满意",
+        "resultType": 1,
+        "feedback": "水平有限"
+      }
+    ],
+    "interviewFeedbackUrl": "https://cdn.mokahr.com/e11d677-4962-4309-b507-2273bf2499c8.pdf?OSSAccessKeyId=BBc12XXIQWCGUAZO&Expires=1505300229&Signature=Vdw6zpNH8HTUnu1FvhSjdXiqK6Q=",
+    "extendedInterviewers":[],
+    "extendedInterviewerFeedbackUrl":"",
+    "referrer": {
+      "name": "杨",
+      "email": "11111@mokahr.com",
+      "phone": "15001802222",
+      "number": "2019"
+    },
+    "headcountInfo": [
+      {
+        "id": 1,
+        "number": "A001",
+        "name": "紧急hc",
+        "status": "timeout"
+      }
+    ],
+    "jobRanksInfo": [
+      {
+        "name": "初级",
+        "type": "类别1",
+        "level": 1
+      }
+    ],
+    "offer": {
+      "approvalStatus": "APPROVED",
+      "salaryNumber": 8000,
+      "checkinDate": "2018-5-3",
+      "location": "北京市海淀区中关村方正国际大厦1001",
+      "creator": {
+        "name": "赵摩卡",
+        "email": "zhao@mokahr.com"
+      },
+      "finishedAt": "2018-4-23T09:10:26.000Z",
+      "customFields": [
+        {
+          "name": "职级",
+          "value": "P6"
+        }
+      ],
+      "hcInfo": {
+        "id": 8,
+        "number": "005",
+        "name": "啦啦",
+        "status": "timeout"
+      },
+      "jobRankInfo": {
+        "level": 3,
+        "name": "总裁",
+        "type": null
+      },
+      "departmentName": "产品创新部",
+      "departmentCode": 30,
+      "parentDepartmentCode": 10,
+      "departmentPath": "产研部/产品创新部",
+      "offerLastSentAt": "2019-10-29T03:41:07.000Z"
+    },
+    "attachments": [
+      {
+        "name": "附件1",
+        "size": 1024,
+        "url": "https://cdn.mokahr.com/e11d677-4962-4309-b507-2273bf2499c8.pdf?OSSAccessKeyId=BBc12XXIQWCGUAZO&Expires=1505300229&Signature=Vdw6zpNH8HTUnu1FvhSjdXiqK6Q=",
+        "downloadUrl": "https://cdn.mokahr.com/e11d677-4962-4309-b507-2273bf2499c8.pdf?OSSAccessKeyId=BBc12XXIQWCGUAZO&Expires=1505300229&Signature=Vdw6zpNH8HTUnu1FvhSjdXiqK6Q=&filename=%E9%99%84%E4%BB%B61",
+        "type": "CANDIDATE_UPLOAD_ATTACHMENT",
+        "customFieldId": 1,
+        "customFieldName": "上传简历"
+      }
+    ],
+    "offerAttachment": {
+      "url": "https://cdn.mokahr.com/1234567-4962-4309-b507-2273bf2499c8.pdf?OSSAccessKeyId=BBc12XXIQWCGUAZO&Expires=1505300229&Signature=Vdw6zpNH8HTUnu1FvhSjdXiqK6Q="
+    },
+    "examReportLinks": [
+      {
+        "name": "考试结果链接",
+        "url": "https://t.cn/XXXXXX"
+      }
+    ],
+    "examAttachments": [
+      {
+        "name": "考试结果",
+        "url": "https://cdn.mokahr.com/1234567-4962-4309-b507-2273bf2499c8.pdf?OSSAccessKeyId=BBc12XXIQWCGUAZO&Expires=1505300229&Signature=Vdw6zpNH8HTUnu1FvhSjdXiqK6Q="
+      }
+    ],
+    "projectInfo": [
+      {
+        "startDate": "2018-09",
+        "endDate": "2018-10",
+        "projectName": "测试项目",
+        "title": "工程师",
+        "projectDescript": "这是个测试的项目",
+        "responsibilities": "开发",
+        "now": false
+      }
+    ],
+    "languageInfo": [
+      {
+        "language": "213",
+        "level": "一般",
+        "listenAndSpeak": "良好",
+        "readAndWrite": "熟练"
+      }
+    ],
+    "ehrCustomFields": [
+      {
+        "name": "extendDepartmentId",
+        "value": 3
+      }
+    ],
+    "ehrCandidateExternalLink": "https://cdn.mokahr.com/forward/candidate/info?access_token=93e0eb37-6a5c-4fe4-91db-0579a844fb51",
+    "label": [
+      {
+        "id": 76,
+        "label": "特别厉害"
+      },
+      {
+        "id": 62,
+        "label": "FisH"
+      }
+    ],
+    "remarks": [
+      {
+        "creator": {
+          "name": "李国兴",
+          "phone": "18810380011",
+          "email": "guoxing123@trymoka.com",
+          "number": "1234"
+        },
+        "content": "这个候选人还不错@[李国兴](1) ",
+        "targets": [
+          {
+            "name": "李国兴",
+            "phone": "18810380011",
+            "email": "guoxing123@trymoka.com",
+            "number": "1234"
+          }
+        ],
+        "is_private": 1,
+        "type": "人工填写",
+        "created_at": "2020-03-30T05:53:28.000Z"
+      }
+    ],
+    "owners": {
+      "name": "张乔",
+      "phone": "15810253321",
+      "email": "zhangqiao@mokahr.com",
+      "employee_id": "220"
+    }
+  }
+}
+请求data里的结构如下：
+
+字段	类型	描述
+candidateId	integer	候选人在Moka中的唯一id
+applicationId	integer	候选人该申请在Moka中的唯一id
+name	string	姓名
+prefixPhone	string	国家呼叫代码
+phone	string	电话
+email	string	邮箱
+gender	string	性别
+可选值：
+男
+女
+created_at	string	简历进入系统的时间
+birthYear	integer	出生年份，如1990
+birthDate	string	出生日期
+ethnic	string	民族
+certificateType	integer	证件类型
+可选值：
+1:身份证
+2:香港身份证
+3:澳门身份证
+4:台湾身份证
+5:护照
+6:其他证件
+7:港澳居民来往内地通行证
+8:台湾居民来往内地通行证
+9:外国人工作许可证
+10:外国人居留许可证
+citizenId	string	证件号码
+nationality	string	国家/地区
+nativePlace	string	籍贯
+experience	integer	工作经验，0表示应届生，-1表示在校生，其他数字表示具体年限
+portraitUrl	string	候选人头像的图片地址,链接有效期为1小时
+hireMode	integer	招聘模式
+可选值：1: 社招
+2: 校招
+finishedAt	string	职位目标完成时间
+industry	string	所在行业
+archived	boolean	申请是否归档
+archivedAt	string	申请归档时间
+archiveReasonId	number	归档原因id
+archiveReasons	string	归档原因
+archiveReasonsDetails	string	详细的归档原因
+talentPoolsList	array	候选人所属人才库信息
+talentPoolsList[].talentPoolId	number	人才库id
+talentPoolsList[].name	string	人才库名称
+talentPoolsList[].description	string	人才库描述
+source	string	渠道，如拉勾
+sourceList	Array	渠道分级，数组按照一级渠道、二级渠道、三级渠道的顺序排列
+sourceList[].id	integer	渠道id（第一级渠道不存在id）
+sourceList[].name	string	渠道名称
+sourceList[].isBuiltin	boolean	是否系统内置渠道
+sourceType	integer	来源
+可选值：
+1:主动搜索，2:主动投递，3:人才推荐
+location	string	所在地，如北京
+lastCompany	string	最近公司
+可选值：
+null：无最近公司
+xxx：任职公司名称
+academicDegree	string	学历，以下值之一：本科，硕士，博士，高中，大专，中专，初中及以下，MBA，其他
+lastSpeciality	string	最近毕业专业
+married	string	婚姻状态，以下值之一：'已婚', '未婚', '离异', '丧偶', 'CIVILUNION', 'COHABITATING', 'MARRIED', 'DIVORCED', 'ENGAGED', 'SEPARATED', 'SINGLE', 'WIDOWED'
+nativePlaceCode	integer	籍贯编码(籍贯为空时为null，编码详情见附件)
+nationalityCode	integer	国籍编码(国籍为空时为null，编码详情见附件)
+genderCode	integer	性别编码(性别为空时为null，编码详情见附件)
+academicDegreeCode	integer	学历编码(学历为空时为null，编码详情见附件)
+ethnicCode	integer	民族编码(民族为空时为null，编码详情见附件)
+personal	string	自我描述
+salary	string	当前工资
+forwardLocation	string	期望城市
+aimSalary	string	期望工资
+personalInterests	string	兴趣爱好
+political	string	政治面貌
+educationInfo[]	array	教育经历
+educationInfo[].startDate	string	学校开始时间，最多精确到月。如2010-09, 2008
+educationInfo[].endDate	string	学校结束时间，最多精确到月。如2010-09, 2008
+educationInfo[].now	boolean	标识结束时间是否为“至今”。当结束时间为至今时，now=true，此时endDate的值将可能为任意值，直接忽略endDate即可
+educationInfo[].school	string	学校名称
+educationInfo[].speciality	string	专业名称
+educationInfo[].academicDegree	string	学历，以下值之一：本科，硕士，博士，高中，大专，中专，初中及以下，MBA，其他
+experienceInfo[]	array	工作经历
+experienceInfo[].startDate	string	工作开始时间，最多精确到月。如2010-09, 2008
+experienceInfo[].endDate	string	工作结束时间，最多精确到月。如2010-09, 2008
+experienceInfo[].now	boolean	标识结束时间是否为“至今”。当结束时间为至今时，now=true，此时endDate的值将可能为任意值，直接忽略endDate即可
+experienceInfo[].company	string	公司名称
+experienceInfo[].title	string	职位名称
+experienceInfo[].department	string	部门
+experienceInfo[].salary	string	薪资
+experienceInfo[].summary	string	工作职责
+experienceInfo[].reasonForLeaving	string	离职原因
+experienceInfo[].underlingNumber	string	下属人数
+experienceInfo[].type	string	公司类型
+experienceInfo[].location	string	工作地点
+experienceInfo[].size	string	公司规模
+awardInfo[]	array	获奖经历
+awardInfo[].awardDate	datetime	获奖时间
+awardInfo[].awardName	string	获奖名称
+resumeUrl	string	简历下载链接，HTTP GET请求该URL即可下载简历原文件，此链接有时效性，过期时间为48小时，需要收到请求后尽快下载在服务器保存
+job	object	应聘职位信息
+job.jobId	string	职位ID
+job.title	string	职位名称
+job.department	string	职位所在部门
+job.departmentPath	string	职位所在部门的完整路径，从上级到下级，以/分割
+job.departmentCode	string	部门code
+job.parentDepartmentCode	string	父级部门code
+job.competencyType	string	职能类型
+job.jobDescription	string	工作描述
+job.customFields	array	职位自定义字段
+job.customFields[].name	string	职位自定义字段名称
+job.customFields[].value	string	职位自定义字段值
+interviewers[]	array	参与候选人此次申请的面试官
+interviewers[].name	string	面试官姓名
+interviewers[].email	string	面试官邮箱
+interviewers[].phone	string	面试官电话
+interviewers[].id	number	面试id
+interviewers[].groupId	string	面试组id
+interviewers[].interviewType	string	面试类型。现场面试、电话面试、视频面试
+interviewers[].attendStatus	string	候选人是否接受面试 候选人未反馈, 候选人未到场, 候选人已拒绝, 候选人已接受
+interviewers[].cancelReason	string	面试取消原因
+interviewers[].participated	string	面试反馈分类 面试未进行, 已填写反馈, 未填写反馈
+interviewers[].status	string	面试状态
+可选值
+已取消, 未结束, 已结束
+interviewers[].round	integer	面试轮次
+可选值
+1: 初试
+2: 复试
+3: 终试 等
+interviewers[].roundName	string	面试轮次名称，初试，复试，终试 等
+interviewers[].roundOtherName	object	面试轮次其它语言的名称
+interviewers[].startTime	string	面试开始时间
+interviewers[].createdAt	string	面试创建时间
+interviewers[].locationCountry	string	面试地点（国家）
+interviewers[].locationCityId	number	面试地点（城市id）
+interviewers[].locationAddress	string	面试地点（详细地址）
+interviewers[].result Deprecated	integer	面试结果
+可选值：
+1:非常不满意
+2:不满意
+3；满意
+4：非常满意
+interviewers[].resultName	string	面试反馈结果
+interviewers[].resultType	integer	面试反馈结果类型
+可选值：
+0: 不满意 1: 满意
+interviewers[].feedback	string	面试反馈内容
+interviewers[].feedbackTemplateResult	array	面试评价表的信息
+interviewers[].feedbackTemplateResult[].type	number	题目类型
+可选值：
+1:打分题
+2:单选
+3:描述
+4:多选
+interviewers[].feedbackTemplateResult[].title	string	题目标题
+interviewers[].feedbackTemplateResult[].description	string	题目描述
+interviewers[].feedbackTemplateResult[].result	number	总分
+interviewers[].feedbackTemplateResult[].calcScoreType	string	可选值：
+avg: 计算平均分
+total: 计算总分 (只在type为1时有效)
+interviewers[].feedbackTemplateResult[].scoreType	number	可选值：
+5 表示5分制
+10 表示10分制(只在type为1时有效)
+interviewers[].feedbackTemplateResult[].needReason	string	是否需要打分综述(只在type为1时有效)
+interviewers[].feedbackTemplateResult[].subjects	array	题目下各个小题的信息
+interviewers[].feedbackTemplateResult[].subjects[].type	number	题目类型
+可选值：
+1: 打分题, 2: 单选题, 3: 描述题, 4: 多选题
+interviewers[].feedbackTemplateResult[].subjects[].title	string	小题标题
+interviewers[].feedbackTemplateResult[].subjects[].description	string	小题描述
+interviewers[].feedbackTemplateResult[].subjects[].result	number	小题结果：打分题为所选分数的数值;单选题为选项的索引值，从0开始；描述题为描述的字符串。题目type=2单选题，返回值为 "result": 0,题目type=4多选题 返回值为"result": [1,2]
+interviewers[].feedbackTemplateResult[].subjects[].reason	string	打分综述
+interviewers[].feedbackTemplateResult[].subjects[].options	string	选项字符串数组（只在type为2时有效)
+interviewFeedbackUrl	string	面试反馈汇总文件（仅包含该申请在当前申请下产生的面试反馈数据），下载链接，HTTP GET请求该URL即可下载面试反馈汇总文件，此链接有时效性，过期时间为1小时，需要收到请求后尽快下载在服务器保存
+extendedInterviewers[]	array	参与候选人此次申请面试官的无面试反馈信息，具体字段参考interviewers
+extendedInterviewerFeedbackUrl	string	面试反馈汇总（如果该申请是从其他岗位推荐产生的，面试反馈包含在其他岗位的申请所产生的面试反馈）文件下载链接，HTTP GET请求该URL即可下载面试反馈汇总文件，此链接有时效性，过期时间为48小时，需要收到请求后尽快下载在服务器保存
+ehrCustomFields[]	array	CSM后台配置的ehr自定义导出字段集合
+ehrCustomFields[].name	string	自定义字段名
+ehrCustomFields[].value	any	自定义字段值
+ehrCandidateExternalLink	string	候选人详情的链接，可以直接在浏览器中打开查看，该链接有效期默认14天，最大可设置365天
+idCardFrontList	array	上传身份证照片（人像面）
+idCardBackList	string	上传身份证照片（国徽面）
+idCardSignOrganization	string	身份证签发机关
+idCardValidity	string	证件有效期
+customAttachmentList	obj	候选人标准简历的所有附件
+customAttachmentList.customUpload+customId	ary	候选人标准简历的附件的key由customUpload(固定字符串)+customId组成
+customAttachmentList.customUpload+customId[].attachmentName	string	附件名称
+customAttachmentList.customUpload+customId[].attachmentSize	number	附件大小(byte)
+customAttachmentList.customUpload+customId[].candidateId	number	候选人id
+customAttachmentList.customUpload+customId[].customId	number	自定义字段id
+customAttachmentList.customUpload+customId[].downloadUrl	string	下载地址24小时失效
+customAttachmentList.customUpload+customId[].createdAt	string	附件创建时间（时间戳格式）
+referrer	object	推荐人信息
+referrer.name	string	推荐人姓名
+referrer.email	string	推荐人邮箱
+referrer.phone	string	推荐人电话
+referrer.number	string	推荐人工号
+可选值：
+：null：无工号
+xxx：工号
+operator	object	操作人信息
+operator.name	string	操作人姓名
+operator.email	string	操作人邮箱
+operator.phone	string	操作人电话
+operator.number	string	操作人工号
+jobRanksInfo[].name	string	职位级别名称
+jobRanksInfo[].type	string	职位级别类型
+jobRanksInfo[].level	string	职位级别等级
+headcountInfo[].id	number	Headcount ID
+headcountInfo[].number	string	Headcount 编号
+headcountInfo[].name	string	Headcount 名称
+headcountInfo[].status	string	Headcount 状态
+customFields[]	array	候选人自定义字段，仅包含标准简历中设置的自定义字段
+customFields[].name	string	候选人自定义字段名称
+customFields[].value	string	候选人自定义字段值。对于是否题类型
+可选值：
+1：是
+0：否。
+customFields[].now	boolean	当自定义字段是时间段时存在该字段，标识结束时间是否为“至今”。结束时间为至今时，now=true，此时endDate的值将可能为任意值，直接忽略endDate即可
+customFields[].section	string	自定义字段所在的模块名称，模块可以是内置模块(如experienceInfo)或者自定义模块(如紧急联系人)
+customFields[].index	string	对于experienceInfo、educationInfo或者自定义模块(如紧急联系人)等存在多条数据的模块，index表示这个字段是第几条数据的自定义字段信息
+customFields[].codes	string	选择题自定义code（仅对有code的选择题生效）
+offer	object	offer信息，当未创建offer时，offer整体返回null
+offer.createdAt	string	offer创建时间。日期格式为：ISO8601
+offer.status	string	offer状态
+可选值：
+notCreated:未创建
+: pending: 未发送
+：sent: 待接受
+: accepted :已接收
+rejected:已拒绝
+offer.approvalStatus	string	审批状态
+可选值：
+UNINITIATED:未发起
+INPROGRES: 审批中
+APPROVED: 已通过
+REJECTED: 已驳回
+RECALLED: 已撤回
+offer.salaryNumber	number	月薪标准
+offer.checkinDate	string	预计入职时间
+offer.location	string	入职地点
+offer.creator	object	offer创建人信息
+offer.creator.name	string	offer创建人姓名
+offer.creator.email	string	offer创建人邮箱
+offer.finishedAt	string	offer接受时间。日期格式为：ISO8601
+offer.customFields	array	offer自定义字段
+offer.customFields[].name	string	offer自定义字段名称
+offer.customFields[].value	string	offer自定义字段值
+offer.customFields[].codes	string	选择题自定义code（仅对有code的选择题生效）
+offer.attachmentList	array	offer附件列表
+offer.attachmentList[].name	string	offer附件名称
+offer.attachmentList[].size	number	offer附件大小
+offer.attachmentList[].downloadUrl	string	offer附件下载链接，48小时有效
+offer.attachmentList[].attachmentType	number	offer附件类型
+可选值：
+0:发送给候选人的附件
+1.发送给审批人的附件
+2:offer附件
+offer.hcInfo	object	offer选中的headCount信息
+offer.hcInfo.id	number	offer选中的Headcount ID
+offer.hcInfo.number	string	offer选中的Headcount 编号
+offer.hcInfo.name	string	offer选中的Headcount 名称
+offer.hcInfo.status	string	offer选中的Headcount 状态
+offer.jobRankInfo	object	offer选中的职位级别信息
+offer.jobRankInfo.type	string	offer选中的职位级别 类型
+offer.jobRankInfo.level	string	offer选中的职位等级
+offer.jobRankInfo.name	string	offer选中的职位级别 名称
+offer.departmentName	string	入职部门名称
+offer.departmentCode	number	入职部门code
+offer.parentDepartmentCode	number	入职部门上级部门code
+offer.departmentPath	string	入职部门完整路径
+offer.offerLastSentAt	string	末次发送offer时间
+offer.offerAttachmentDownloadUrl	string	offer生成的附件下载URL，有效期48个小时
+attachments	array	候选人的所有附件
+attachments[].name	string	候选人附件的文件名
+attachments[].applyFormId	number	登记表模板ID
+attachments[].size	integer	候选人附件的文件大小
+attachments[].url	string	候选人附件的下载地址
+attachments[].downloadUrl	string	候选人附件的下载地址，带filename以及contentType等headers
+attachments[].customFieldId	integer	自定义附件字段ID
+attachments[].customFieldName	string	自定义附件字段名称
+attachments[].type	string	候选人附件的类型
+可选值：
+CANDIDATE_UPLOAD_ATTACHMENT 候选人上传
+UPLOAD_PORTRAIT 候选人头像
+HR_UPLOAD_ATTACHMENT HR手动上传
+HM_UPLOAD_ATTACHMENT 用人经历端手动上传
+INTERVIEW_ACCEPT 候选人接受面试生成的登记表附件
+INTERVIEW_SIGNIN 候选人面试签到生成的登记表附件
+OFFER_ACCEPT 候选人接受OFFER生成的登记表附件
+MERGE_APPLICATION_ATTACHMENT 候选人合并产生的附件
+INVITE_UPDATE_RESUME 邀请候选人更新简历生成的登记表
+offerAttachment	object	候选人offer相关附件
+默认无此字段，如果需要请联系您的CMS, 获取候选人接口开关开启也不会有该字段
+offerAttachment.url	string	候选人offer相关附件下载地址
+链接地址有效期为48小时
+examReportLinks	array	候选人考试/测评结果链接
+examReportLinks[].name	string	候选人考试/测评名
+examReportLinks[].url	string	候选人考试/测评结果链接
+examReportLinks[].type	string	代表：exam或者evaluation
+examReportLinks[].result	string	候选人考试/测评结果的结果
+examReportLinks[].detailResult	string	候选人考试/测评的详细结果
+examAttachments	array	候选人考试/测评相关附件
+examAttachments[].name	string	候选人考试/测评相关附件文件名
+examAttachments[].url	string	候选人考试/测评相关附件下载地址
+链接地址有效期为1小时
+examAttachments[].result	string	候选人考试/测评结果的结果
+examAttachments[].detailResult	string	候选人考试/测评详细结果
+projectInfo	array	项目经验
+projectInfo[].startDate	string	项目开始时间，最多精确到月。如2010-09, 2008
+projectInfo[].endDate	string	项目结束时间，最多精确到月。如2010-09, 2008
+projectInfo[].projectName	string	项目名称
+projectInfo[].title	string	担任> 职责
+projectInfo[].projectDescript	string	项目描述
+projectInfo[].responsibilities	string	项目中职责
+projectInfo[].now	boolean	标识结束时间是否为“至今”。当结束时间为至今时，now=true，此时endDate的值将可能为任意值，直接忽略endDate即可
+languageInfo	array	语言能力
+languageInfo[].language	string	语言类型
+languageInfo[].level	string	掌握程度
+languageInfo[].listenAndSpeak	string	听说能力
+languageInfo[].readAndWrite	string	读写能力
+stageName	string	阶段名字
+jobManager	object	职位管理员
+jobManager.name	string	职位负责人名字
+jobManager.phone	string	职位负责人电话
+jobManager.email	string	职位负责人邮箱
+jobManager.number	string	职位负责人工号
+jobManager.employeeId	string	职位负责人工号（已废弃）
+jobAssistants	array	职位协助人
+jobAssistants[].name	string	职位协助人名字
+jobAssistants[].phone	string	职位协助人电话
+jobAssistants[].email	string	职位协助人邮箱
+jobAssistants[].employeeId	string	职位协助人工号（已废弃）
+label	array	候选人标签
+label[].id	number	标签id
+label[].label	string	标签名称
+remarks	array	候选人备注
+remarks[].creator	object	备注的创建者信息
+remarks[].creator.name	object	备注的创建者名称
+remarks[].creator.phone	object	备注的创建者手机号吗
+remarks[].creator.email	object	备注的创建者邮箱
+remarks[].creator.number	object	备注的创建者工号
+remarks[].content	string	备注的内容
+remarks[].targets	array	备注的@的人员信息，格式同创建者信息
+remarks[].is_private	number	备注是不是私密，1：私密0：非私密
+remarks[].type	string	备注类型：人工填写
+remarks[].created_at	string	备注创建时间
+owners	object	候选人所有者
+owners.name	string	候选人所有者名字
+owners.phone	string	候选人所有者电话
+owners.email	string	候选人所有者邮箱
+owners.employeeId	string	候选人所有者工号
+survey	array	背调内容
+survey[].name	string	背调名称
+survey[].date	string	背调日期
+survey[].result	string	背调结果
+survey[].surveyAttachmentsUrl	string	背调报告链接
+survey[].surveyAttachmentName	string	背调附件名称
+survey[].surveyAttachments[]	array	背调多附件（新版的单附件和多附件都在这个附件集合，原来的单附件结果只做历史兼容使用）
+survey[].surveyAttachments[].surveyAttachmentsUrl	string	背调报告链接
+survey[].surveyAttachments[].surveyAttachmentName	string	背调附件名称
+practiceInfo[]	array	实习经历
+practiceInfo[].startDate	string	实习开始时间
+practiceInfo[].endDate	string	实习结束时间
+practiceInfo[].company	string	公司名称
+practiceInfo[].title	string	职位名称
+
+
+获取阶段信息列表
+接口调用示例：curl -u "xxxx:" https://api.mokahr.com/api-platform/v2/stage/getStagesList
+返回值：{"code":200,"msg":"success","data":[{"id":99133,"name":"测评","type":202},{"id":105019,"name":"初筛","type":100},{"id":105020,"name":"用人部门筛选","type":200},{"id":105021,"name":"面试","type":201},{"id":105022,"name":"沟通offer","type":101},{"id":105023,"name":"待入职","type":102},{"id":105120,"name":"背调","type":101}]}
+将阶段信息的返回值配置到后台中去，将申请移动到所在职位下的任一阶段中直接使用这个配置里面的值
+
+将申请移动到所在职位下的任一阶段
+接口调用示例：curl http://api.mokahr.com/api-platform/v1/applications/move_application_stage?applicationId=96&stageId=4 -u 'your_api_key:' -X PUT
+返回值：{"code": 0,"msg": "成功"}
+
+
+根据申请id，获取简历解析文本
+接口调用示例：curl -X POST 'http://api.mokahr.com/api-platform/application/resumeContent/get' -u 'xxx:' -H 'Content-Type: application/json' -d '{ "applicationId":779645471 }'
+返回值：{"code":200,"msg":"success","data":{"resumeKey":"xingjia/2714f81f-bb34-4752-a145-dd44f8816b54.pdf","resumeContent":"                                  教育背景\n                            2019.9 - 2023.7       电子科技大学\n                            无人驾驶航空器系统工程 / 本科 / 工学学士   交互媒体艺术 / 辅修\n                            专业课程:C 语言程序基础,数字电路与逻辑设计, 通信原理,空气动力学基础,无人驾驶基础;\n  <Photo>\n                            2024.9 - 2025.10      香港理工大学\n                            元宇宙科技 / 硕士研究生 / 理学硕士\n                            专业课程:元宇宙基础,UX/UI 交互,增强现实,游戏引擎与编程,游戏理论与实践\n                                   在校经历\n                            VR-FPS 游戏开发(Unity)                              2024.10-2024.11\n                            交互系统:设计可交互道具功能与使用规则,增强玩法策略性与玩家沉浸感。\n         彭子芯           体验优化:依据用户测试反馈调整难度曲线与资源投放节奏,优化整体流程顺畅度与游戏体验。\n                            关卡设计:通过敌人分布与路径规划引导玩家动线,结合掩体与道具点位排布优化关卡节奏与战斗体验。\n                            Global Game Jam 2025 中国香港站 | 48 小时极限开发     2025.1\n                            在 48 小时内根据命题完成了一款 2D 平台跳跃游戏,完成项目的顺利进行和高质量的交付。\n                            系统设计:主导设计\"平台跳跃+解谜\"核心玩法,设计角色核心能力,优化游戏跳跃系统和玩家体验。\n                            关卡设计:设计并搭建 2D 解谜关卡,运用 POI 前置引导玩家动线,将核心机制教学自然融入关卡流程,设置奖励反\n   生日:2001.04             馈机制增强正反馈。\n                            体验优化:统筹美术风格与角色设计,设计动态重生机制,确保在极限开发周期内完成玩法闭环验\n   现居:贵阳                Game Engine 课程设计 | 2.5D 多人合作派对游戏           2025.4\n                            系统设计:负责设计游戏多人合作体验的核心循环设计,道具生成规则与使用逻辑,平衡多人对战体验。\n   手机:15285933030\n                            关卡设计:设计迷宫式场景动线,规划空间分布;构建关卡地图布局,确保多人合作路径的合理性与策略性。\n                            美术设计:主导了美术设计,通过光影效果设计增强场景引导性,优化体积雾等环境要素以强化游戏主题表达。\n   微信:Vichar496\n                            杭州大运河文化数字展厅 | 3D 数字化项目(Unreal Engine 5) 2025.5-2025.7\n                            为展厅打造一段 3-5 分钟的 180 度全景投影数字互动体验,通过 3D 数字化手段生动呈现大运河文化。基于扫描数\n   邮箱:Vichar496@163.com\n                            据设计展厅地形布局与互动体验动线, 在 UE5 中优化并重新编排 3D 扫描资产,构建沉浸式场景。展品在港理工杭州\n                            大运河文化数字展厅内成功展出并获得参展人员的好评。\n   作品  https://pan.baidu.co\n                                   实习经历\n   集:  m/s/1u0YmViZ80eZBT\n                            2025.7-2025.10 上海叠纸科技有限公司 - 活动玩法策划实习生\n                            活动规划与设计:参与活动版本规划与体验设计,输出活动策划案及需求文档,明确玩法规则及实现细节。\n         aCMHq_2cw\n                            玩法创意提案:设计创新活动玩法方案,将游戏核心玩法与版本主题深度融合。\n         提取码: AAAA         跨部门协作:协同程序,美术,文案等部门,协调设计玩法与需求文档,在玩家群体内获得了广泛好评。\n                                  游戏经历\n                           多年沉浸于各类游戏,涵盖 PC 单机(如《博德之门 3》《巫师 3》),主机游戏(《塞尔达传说》系列,《怪物猎人》\n                           系列)多平台独立游戏(如《星际拓荒》《空洞骑士》),MMORPG 端游(如《最终幻想 14》《燕云十六声》),二次\n                           元手游(如《原神》《明日方舟》)以及社交休闲手游(《蛋仔派对》《光遇》)等\n                           每周投入超过 20 小时游戏时间,对不同类型游戏的玩法机制,剧情叙事,玩家心理有深度剖析与独立见解,能够从玩\n                           家角度出发,优化关卡设计与游戏体验。\n                                 通用技能\n                           通用技能证书:英语四级证书,雅思英语 6.5\n                           专业技能:熟练使用 Excel 设计并配置策划表,编写清晰的设计文档。掌握 Blender 基础建模,能输出关卡布局\n                           白模供美术参考;熟练掌握 PS,AI 等设计软件,具有基础的审美能力,能配合美术熟练制作美术需求清单。理解\n                           VR 交互设计规范(如防眩晕动线设计,手柄交互映射逻辑)。\n                           Unity:可独立搭建关卡白模,配置角色状态机及基础 AI 行为树,实现玩法原型验证\n                           Unreal:掌握蓝图可视化编程,能通过 C++修改基础玩法逻辑\n                                 自我评价\n                           具备良好的活动策划和组织协调能力,能以创新的视角和心态审视工作中的成果。良好的心态和责任感,吃苦耐\n PERSONAL RESUME\n                           劳,善于管理时间,勇于面对变化和挑战。 具备良好的学习能力,习惯制定切实可行的学习计划,勤于学习能不\n                           断提高。"}}
+
+
+
+获取候选人信息v2接口(不迭代)
+请求样例 （application/json）
+curl https://api.mokahr.com/api-platform/v2/data/ehrApplications \
+   -u '6625748e841dd38e3662c9fcd061865f:' \
+   -X POST \
+   -H 'Content-Type: application/json' \
+   -d '{
+    "applicationIds":[841907723]
+}'
+
+返回值：{
+    "code": 200,
+    "msg": "success",
+    "data": [
+        {
+            "basicInfo": {
+                "prefixPhone": null,
+                "applicationId": 425436988,
+                "campusSiteId": 0,
+                "archived": false,
+                "invitationUpdateStatus": 0,
+                "movedAt": "2023-11-23T09:35:57.000Z",
+                "appliedAt": "2023-11-08T03:35:10.000Z",
+                "sourceId": 410022886,
+                "createdAt": "2023-11-08T03:35:11.000Z",
+                "updatedAt": "2023-11-23T09:37:12.000Z",
+                "resumeKey": "staging002/c68b85a9-750e-478f-af13-f8cd10908ae0.txt",
+                "resumeUrl": "https://moka-test-oss.mokahr.com/staging002/2586.txt",
+                "standardResumeUrl": "https://moka-test-oss.mokahr.com/staging002/timestamp=1704434786908",
+                "sourceName": "拉勾",
+                "ehrCandidateExternalLink": "https://staging-2.mokahr.com/forward/6558d3344a8f6f05a04e044b3872e299870e8fe52",
+                "pipelineId": 410006067,
+                "stageId": 410012144,
+                "aimWorkCity": null,
+                "archivedAt": null,
+                "archiveReasonId": null,
+                "archiveReasonsDetails": null,
+                "probation": null,
+                "headcountId": null,
+                "headcountNumber": null,
+                "headcountName": null,
+                "idCardFrontList": null,
+                "idCardBackList": null,
+                "realHiredDate": null,
+                "archiveReasons": null,
+                "talentPoolsList": null,
+                "hireMode": 1,
+                "pipeline": {
+                    "name": "默认招聘流程",
+                    "id": 410006067
+                },
+                "stage": {
+                    "name": "待入职",
+                    "id": 410012144,
+                    "type": 102
+                },
+                "operationRecord": null,
+                "sourceList": [
+                    {
+                        "name": "招聘网站",
+                        "isBuiltin": 1,
+                        "id": null
+                    },
+                    {
+                        "id": 410022886,
+                        "name": "拉勾",
+                        "isBuiltin": 1
+                    },
+                    {
+                        "id": null,
+                        "name": null,
+                        "isBuiltin": null
+                    }
+                ],
+                "attachments": null,
+                "remarks": [],
+                "referrer": null,
+                "owner": {
+                    "name": "xxx",
+                    "phone": "10000000000",
+                    "email": "xxx@mokahr.com",
+                    "number": "0099",
+                    "employeeId": "0099"
+                },
+                "assignments": [
+                    {
+                        "assigneeId": 410224017,
+                        "assignerId": 410246054,
+                        "sentAt": 1700640945000,
+                        "result": null
+                    }
+                ],
+                "operator": null,
+                "birthYear": 1998,
+                "candidateId": 425830771,
+                "sourceType": 2,
+                "personalUrl": "",
+                "name": "xxx",
+                "phone": "10000000000",
+                "email": "xxx@mokahr.com",
+                "gender": "男",
+                "ethnic": "",
+                "certificateType": 1,
+                "citizenId": "",
+                "nationality": "",
+                "nativePlace": "北京市",
+                "experience": 9,
+                "location": "北京市",
+                "lastCompany": "xxxxxxx股份有限公司",
+                "academicDegree": "硕士",
+                "lastSpeciality": "会计学",
+                "married": "未婚",
+                "nativePlaceCode": 110000,
+                "genderCode": 0,
+                "academicDegreeCode": 5,
+                "industry": "",
+                "forwardIndustry": "",
+                "lastUpdate": "",
+                "startFrom": "",
+                "skill": "",
+                "awards": "",
+                "lastWorkedJobTitle": "网络运营管理",
+                "graduateDate": "2010-06-01T00:00:00.000Z",
+                "salary": "360000元/年",
+                "aimSalary": "",
+                "forwardLocation": "",
+                "personal": "本人性格开朗,稳重,有活力,待人热情,真诚。有很强的专业的职业道德,专业基础知识扎实。工作认真负责,主动承担责任,积极与周围工作环境建立良好的工作关系,并具有一定的资源协调能力。与同事,其它部门各极配合,有较强的组织能力,实际动手能力和团体协作精神。能迅速的适应各种环境,并融合其中",
+                "idCardSignOrganization": "",
+                "idCardValidity": "",
+                "address": "",
+                "lastSchool": "xxxx大学",
+                "blacklistTags": null,
+                "blacklistDetail": null,
+                "birthDate": null,
+                "portraitUrl": null,
+                "nationalityCode": null,
+                "ethnicCode": null,
+                "personalInterests": null,
+                "customAttachmentList": null,
+                "political": null,
+                "customFields": null,
+                "label": [
+                    {
+                        "id": 4,
+                        "label": "行业专注",
+                        "type": 1
+                    },
+                    {
+                        "id": 1,
+                        "label": "名企背景",
+                        "type": 1
+                    },
+                    {
+                        "id": 410026147,
+                        "label": "双一流大学",
+                        "type": 1
+                    },
+                    {
+                        "id": 410038563,
+                        "label": "硕士",
+                        "type": 1
+                    }
+                ],
+                "educationInfo": [
+                    {
+                        "id": "421785704",
+                        "startDate": "2004-09",
+                        "endDate": "2008-06",
+                        "now": false,
+                        "school": "xxxx大学",
+                        "speciality": "会计学",
+                        "academicDegree": "本科"
+                    },
+                    {
+                        "id": "421785705",
+                        "startDate": "2008-09",
+                        "endDate": "2010-06",
+                        "now": false,
+                        "school": "xxxx大学",
+                        "speciality": "会计学",
+                        "academicDegree": "硕士"
+                    }
+                ],
+                "experienceInfo": [
+                    {
+                        "id": "587014203",
+                        "startDate": "2017-06",
+                        "endDate": "2020-04",
+                        "now": false,
+                        "company": "xxxxxx股份有限公司",
+                        "title": "网络运营管理",
+                        "location": "",
+                        "industry": "",
+                        "leader": "",
+                        "department": "",
+                        "salary": "360000元/年",
+                        "summary": "工作描述:1,员工关系:负责公司员工入离职办理,档案维护等\n2,招聘:负责xx公司社招及实习生招聘及面试\n3,行政:协助行政Leader进行行政工作",
+                        "reasonForLeaving": "",
+                        "underlingNumber": "",
+                        "type": "",
+                        "size": ""
+                    },
+                    {
+                        "id": "587014204",
+                        "startDate": "2010-07",
+                        "endDate": "2017-05",
+                        "now": false,
+                        "company": "xxxx有限公司深圳第一分公司",
+                        "title": "校长/副校长",
+                        "location": "",
+                        "industry": "",
+                        "leader": "",
+                        "department": "",
+                        "salary": "180000元/年",
+                        "summary": "工作描述\n运营:实习生团队管理,包括离职面谈,日常答疑等;协助更新官方头条号,抖音账号\n实习生招聘:四川LA团队实习生招聘,每月平均入职15名实习生\n社会招聘:四川LA团队重点岗位招聘Mapping,期间3位候选人走到面试后期\n文化活动:协助leader策划团队活动,包括转正答辩,生日会,挑战赛等\n其他:定期更新招聘周报,招聘月报,招聘计划,招聘漏斗,招聘渠道;独立负责短期招聘项目,管培生培养项目",
+                        "reasonForLeaving": "",
+                        "underlingNumber": "",
+                        "type": "",
+                        "size": ""
+                    }
+                ],
+                "awardInfo": null,
+                "projectInfo": null,
+                "languageInfo": null,
+                "practiceInfo": null,
+                "interestSource": null
+            },
+            "jobInfo": {
+                "id": "e3b15530-b938-41ec-ab7d-5c569613bbd5",
+                "headcountInfo": [],
+                "mjCode": "MJ002910",
+                "jobRanksInfo": [],
+                "hireMode": 1,
+                "title": "消息1108",
+                "commitment": "全职",
+                "number": null,
+                "status": "open",
+                "attributeId": null,
+                "attributeName": null,
+                "label": null,
+                "category": null,
+                "jobDescription": "<p><strong>工作内容：</strong></p><p>1. 负责项目计划的制定和执行，保证项目按时、按质、按量完成。</p><p>2. 策划和组织项目中的各项工作，包括制定项目方案、分析数据、编写报告、组织调研、协调各方资源等。</p><p>3. 负责项目的质量控制，协调项目各阶段的验收工作。</p><p>4. 报告工作进展情况，及时向领导汇报项目的风险、问题和进度。</p><p><strong>任职要求：</strong></p><p>1. 本科及以上学历，专业不限。</p><p>2. 3年以上相关工作经验，有管理咨询、项目管理经验优先。</p><p>3. 熟练掌握项目管理方法和工具，熟悉项目的规划、执行、监控和控制等阶段。</p><p>4. 具备优秀的方案撰写和报告表达能力，能够清晰明确地表达深入的分析和建议。</p><p>5. 具备团队合作能力，良好的沟通能力和组织协调能力，能够有效地协调团队成员工作。 </p><p>6. 熟悉office办公软件，如Word、Excel、PPT等。</p><p>7. 熟悉统计分析软件如SPSS等，熟悉数据分析方法和技巧。</p><p>8. 必须具备优秀的英语读写能力，能够独立完成英文报告和资料翻译。</p>",
+                "openedAt": "2023-11-07T16:00:00.000Z",
+                "campusSiteIds": [],
+                "campusSites": [],
+                "finishedAt": null,
+                "department": {
+                    "info": {
+                        "departmentName": "更新",
+                        "departmentCode": "98991",
+                        "departmentPath": "更新",
+                        "id": "411075469"
+                    },
+                    "name": "更新",
+                    "parentId": null
+                },
+                "stores": [],
+                "customFields": [
+                    {
+                        "name": "测试选择题",
+                        "value": ""
+                    },
+                    {
+                        "name": "故意放核桃仁的",
+                        "value": ""
+                    }
+                ],
+                "jobManager": {
+                    "name": "xxx",
+                    "phone": "10000000000",
+                    "number": "0099",
+                    "email": "xxx@mokahr.com",
+                    "employeeId": "0099"
+                },
+                "jobAssistants": [],
+                "jobHiringManagers": [],
+                "jobInterviewers": []
+            },
+            "offerInfo": null,
+            "interviewInfo": [
+    {
+        "noInterview": false,
+        "applicationId": 841789506,
+        "groupInterviewId": 46298861,
+        "groupId": "0bedee70f64c4072b11faf5df54d9d54a45db2058f314deb99aa69e6c9c4390e",
+        "status": "未结束",
+        "candidateAttendStatus": "候选人未反馈",
+        "signInStatus": "未签到",
+        "interviewType": "现场面试",
+        "jobType": "",
+        "locationId": 574635,
+        "roundId": 11,
+        "roundName": "部门一面（中）",
+        "roundEnglishName": "",
+        "createAt": "2026-09-09T06:17:42.000Z",
+        "startTime": "2026-09-14T07:00:00.000Z",
+        "duration": 30,
+        "interviewFeedbackUrl": "https://app.mokahr.com/api/outer/ats-interview/interview/interview-applications/exportPdf/withKey?sign=168d7ceb8ec9f7c48cc8c82817938833&userId=&orgId=xingjia&appSecret=dc07abc6-ad14-4fa6-ba4a-51bf83a0e343&applicationId=841789506&timestamp=1788936868710",
+        "locationCityId": 440106,
+        "locationCountry": "中国",
+        "locationAddress": "广东 广州市 天河区 黄埔大道中羊城创意园2-09星嘉科技",
+        "stageId": 105021,
+        "satisfactionRecord": {},
+        "cancelReason": null,
+        "locationInfo": null,
+        "meetingRoomId": null,
+        "meetingRoomName": null,
+        "interviewArranger": {
+            "name": "朱岱莹",
+            "email": "zhudaiying@xjmail.top",
+            "phone": "13670506818",
+            "number": "GZ000332",
+            "employeeId": "GZ000332"
+        },
+        "interviewerFeedbacks": [
+            {
+                "feedbackId": "63793590",
+                "interviewer": {
+                    "number": "GZ000060",
+                    "phone": "18928946351",
+                    "name": "罗俊华",
+                    "employeeId": "GZ000060",
+                    "id": 2791242,
+                    "email": "luojunhua@xjmail.top"
+                },
+                "participated": "未填写反馈",
+                "applicationId": 841789506,
+                "resultName": null,
+                "resultType": null,
+                "feedback": null,
+                "feedbackTime": null,
+                "feedbackTemplateResult": null,
+                "items": null
+            }
+        ]
+    }
+],
+            "shigongInfo": null,
+            "examInfo": {
+                "applicationId": 425436988,
+                "candidateId": 425830771,
+                "exams": [],
+                "jobId": "e3b15530-b938-41ec-ab7d-5c569613bbd5",
+                "surveys": [
+                    {
+                        "name": "mock套餐004",
+                        "date": "2023-11-23T09:29:03.000Z",
+                        "source": "开放平台三方",
+                        "jobId": "e3b15530-b938-41ec-ab7d-5c569613bbd5",
+                        "applicationId": 425436988,
+                        "attachments": null,
+                        "result": null,
+                        "attachmentName": null,
+                        "attachmentUrl": null,
+                        "comment": null
+                    }
+                ]
+            },
+            "customstyleAttachments": null,
+            "activities": [
+                {
+                    "applicationId": 425436988,
+                    "operator": {
+                        "name": "xxx",
+                        "email": "xxx@mokahr.com",
+                        "phone": "10000000000",
+                        "number": "0099",
+                        "employeeId": "0099"
+                    },
+                    "createdAt": "2023-11-08T03:35:11.000Z",
+                    "source": "拉勾",
+                    "type": "ADD_CANDIDATE",
+                    "toStageId": null,
+                    "toStageName": null,
+                    "fromStageId": null,
+                    "fromStageName": null
+                },
+                {
+                    "applicationId": 425436988,
+                    "operator": {
+                        "name": "xxxx@163.com",
+                        "email": "xxxxx@163.com",
+                        "phone": "10000000000",
+                        "employeeId": "",
+                        "number": null
+                    },
+                    "createdAt": "2023-11-22T08:15:35.000Z",
+                    "toStageId": 410012141,
+                    "toStageName": "用人部门筛选",
+                    "fromStageId": 410012140,
+                    "fromStageName": "初筛",
+                    "type": "MOVE_STAGE",
+                    "source": null
+                },
+                {
+                    "applicationId": 425436988,
+                    "operator": {
+                        "name": "xxx",
+                        "email": "xxx@mokahr.com",
+                        "phone": "10000000000",
+                        "number": "0099",
+                        "employeeId": "0099"
+                    },
+                    "createdAt": "2023-11-23T09:28:46.000Z",
+                    "toStageId": 410012143,
+                    "toStageName": "沟通offer",
+                    "fromStageId": 410012141,
+                    "fromStageName": "用人部门筛选",
+                    "type": "MOVE_STAGE",
+                    "source": null
+                },
+                {
+                    "applicationId": 425436988,
+                    "operator": {
+                        "name": "xxx",
+                        "email": "xxx@mokahr.com",
+                        "phone": "10000000000",
+                        "number": "0099",
+                        "employeeId": "0099"
+                    },
+                    "createdAt": "2023-11-23T09:35:57.000Z",
+                    "toStageId": 410012144,
+                    "toStageName": "待入职",
+                    "fromStageId": 410012143,
+                    "fromStageName": "沟通offer",
+                    "type": "MOVE_STAGE",
+                    "source": null
+                }
+            ]
+        }
+    ]
+}
+
+
+获取面试基本信息V3接口
+请求样例
+$ curl https://api.mokahr.com/api-platform/v3/getInterviewInfos \
+    -u 'your-api_key:' \
+       -X POST
+    -H 'Content-Type: application/json' \
+    -d '{
+      "applicationIds": [123456, 789012],
+      "orgId": "test"
+    }'
+
+返回样例
+{
+    "code": 0,
+    "codeType": 0,
+    "data": [
+        {
+            "groupId": "group_123",
+            "groupInterviewId": 456,
+            "stageId": 789,
+            "status": 1,
+            "candidateAttendStatus": 4,
+            "signInStatus": 1,
+            "interviewType": 1,
+            "jobType": "video_package_1",
+            "locationId": 101,
+            "meetingRoomId": 202,
+            "meetingRoomName": "会议室A",
+            "roundId": 1,
+            "roundName": "初试",
+            "roundEnglishName": "1st round",
+            "createAt": 1653532481000,
+            "startTime": 1653532481000,
+            "duration": 60,
+            "applicationId": 123456,
+            "interviewId": 789
+        }
+    ],
+    "msg": "成功",
+    "success": true
+}
+
+
+获取单个报表结果数据
+请求样例
+
+curl --location --request POST 'https://api.mokahr.com/api-platform/v1/getReportData' \
+            --header 'Content-Type: application/json' \
+            --header 'Authorization: Basic dGVzdDo=' \
+            --data-raw '{
+                "reportId": 12318
+            }'
+返回样例
+
+{
+  "code": 200,
+  "data": {
+    "headers": [{
+      "dataIndex": "c_1",
+      "title": "性别",
+      "type": "HEADER"
+    }, {
+      "dataIndex": "c_2",
+      "title": "民族",
+      "type": "HEADER"
+    }],
+    "rows": [{
+      "c_1": "男性",
+      "c_2": "汉族"
+    }],
+    "size": 1
+  },
+  "msg": "成功"
+}
+
+
+获取用人部门评估结论
+
+curl -X POST 'https://api.mokahr.com/api-platform/candidate/v1/get_handle_Result' \
+-u ':' \
+-H 'Content-Type: application/json' \
+-d '{"applicationIdList":[853444663]}'
+
+
+
+
