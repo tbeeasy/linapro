@@ -24,7 +24,7 @@ const (
 	MultiSelect Code = "multi_select"
 	// Richtext is rich text content; UIs may degrade to an enhanced textarea.
 	Richtext Code = "richtext"
-	// JSON 为任意合法 JSON 文本，管理面用代码编辑器编辑；不约束结构，按原文持久化。
+	// JSON 为任意合法 JSON 文本，管理面用代码编辑器编辑；不约束结构，入库前紧凑化，展示时由管理面格式化。
 	JSON Code = "json"
 )
 
