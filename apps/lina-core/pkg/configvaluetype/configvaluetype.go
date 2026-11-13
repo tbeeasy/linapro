@@ -24,6 +24,8 @@ const (
 	MultiSelect Code = "multi_select"
 	// Richtext is rich text content; UIs may degrade to an enhanced textarea.
 	Richtext Code = "richtext"
+	// JSON 为任意合法 JSON 文本，管理面用代码编辑器编辑；不约束结构，按原文持久化。
+	JSON Code = "json"
 )
 
 // String returns the canonical persisted code value.
@@ -34,7 +36,7 @@ func (code Code) String() string {
 // IsSupported reports whether code is a published value type.
 func (code Code) IsSupported() bool {
 	switch code {
-	case Text, Textarea, Number, Boolean, Select, Radio, MultiSelect, Richtext:
+	case Text, Textarea, Number, Boolean, Select, Radio, MultiSelect, Richtext, JSON:
 		return true
 	default:
 		return false
@@ -62,5 +64,5 @@ func Normalize(raw string) Code {
 
 // All returns every published value type in stable order for documentation and tests.
 func All() []Code {
-	return []Code{Text, Textarea, Number, Boolean, Select, Radio, MultiSelect, Richtext}
+	return []Code{Text, Textarea, Number, Boolean, Select, Radio, MultiSelect, Richtext, JSON}
 }

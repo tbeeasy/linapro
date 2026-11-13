@@ -95,6 +95,10 @@ const PreviewGroup = defineAsyncComponent(() =>
 const RichText = defineAsyncComponent(() =>
   import('#/components/tiptap').then((mod) => mod.TiptapEditor),
 );
+// 宿主 JSON 代码编辑器（CodeMirror），用于 sys_config valueType=json 等表单字段；按需加载。
+const JsonEditor = defineAsyncComponent(() =>
+  import('#/components/code-editor').then((mod) => mod.JsonEditor),
+);
 
 const withDefaultPlaceholder = <T extends Component>(
   component: T,
@@ -502,6 +506,7 @@ export type ComponentType =
   | 'Input'
   | 'InputNumber'
   | 'InputPassword'
+  | 'JsonEditor'
   | 'Mentions'
   | 'PrimaryButton'
   | 'Radio'
@@ -563,6 +568,7 @@ async function initComponentAdapter() {
     Input: withDefaultPlaceholder(Input, 'input'),
     InputNumber: withDefaultPlaceholder(InputNumber, 'input'),
     InputPassword: withDefaultPlaceholder(InputPassword, 'input'),
+    JsonEditor,
     Mentions: withDefaultPlaceholder(Mentions, 'input'),
     // 自定义主要按钮
     PrimaryButton: (props, { attrs, slots }) => {

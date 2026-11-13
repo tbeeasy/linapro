@@ -26,7 +26,7 @@ type SysConfigColumns struct {
 	Name             string // Config parameter name
 	Key              string // Config parameter key
 	Value            string // Config parameter value
-	ValueType        string // Parameter value input type: text, textarea, number, boolean, select, radio, multi_select, richtext
+	ValueType        string // Parameter value input type: text, textarea, number, boolean, select, radio, multi_select, richtext, json
 	Options          string // JSON array of {label,value} options for select/radio/multi_select; empty for other types
 	IsBuiltin        string // Built-in record flag: 1=yes, 0=no
 	SystemManageable string // Whether the parameter may be listed and mutated on the system config management page: 1=yes, 0=no (plugin closed-loop settings)

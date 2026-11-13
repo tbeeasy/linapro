@@ -4,7 +4,9 @@
 package sysconfig
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"strings"
 
 	"lina-core/internal/dao"
@@ -102,7 +104,28 @@ func normalizePersistedValue(valueType configvaluetype.Code, value string) strin
 	if valueType == configvaluetype.Number {
 		return strings.TrimSpace(value)
 	}
+	if valueType == configvaluetype.JSON {
+		return compactJSONValue(value)
+	}
 	return value
+}
+
+// compactJSONValue 去掉 JSON 值里字符串之外的空白，入库只存紧凑文本。
+// 展示时的缩进由管理面前端在打开编辑器时重新格式化，存储不承担排版职责：
+// 同一份内容不同排版的提交会得到同一个字符串，运行时快照刷新与导出比对都不受排版影响。
+// 压缩只删除空白字符，不改数字字面量，也不会丢大整数精度，所以这里必须用
+// json.Compact 而不是先反序列化再序列化。
+func compactJSONValue(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return trimmed
+	}
+	var buf bytes.Buffer
+	if err := json.Compact(&buf, []byte(trimmed)); err != nil {
+		// 非法 JSON 由后续 validateTypedConfigValue 给出结构化校验错误，这里原样返回。
+		return trimmed
+	}
+	return buf.String()
 }
 
 // parseEntityOptions converts the stored options JSON into API-friendly options.

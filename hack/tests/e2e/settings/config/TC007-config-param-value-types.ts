@@ -131,4 +131,66 @@ test.describe('TC007 参数值类型化编辑', () => {
 
     await adminPage.keyboard.press('Escape');
   });
+
+  test('TC-7e: JSON 类型使用代码编辑器、校验格式并可格式化保存', async ({
+    adminPage,
+  }) => {
+    const jsonName = `类型化JSON_${Date.now()}`;
+    const jsonKey = `test.typed.json.${Date.now()}`;
+    const configPage = new ConfigPage(adminPage);
+    await configPage.goto();
+    await configPage.openCreateDialog();
+
+    const dialog = configPage.createEditDialog;
+    const compactBox = await dialog.boundingBox();
+    expect(compactBox).toBeTruthy();
+
+    await configPage.fillDialogField('参数名称', jsonName);
+    await configPage.fillDialogField('参数键名', jsonKey);
+    await configPage.selectValueType(/^JSON$/);
+    await expect(dialog.getByTestId('config-modal-value-type-json')).toBeVisible();
+    await expect(configPage.jsonEditor).toBeVisible();
+
+    // spacious 档：弹窗加宽、提供全屏入口、编辑区不低于 clamp 下限
+    const spaciousBox = await dialog.boundingBox();
+    expect(spaciousBox!.width).toBeGreaterThan(compactBox!.width + 80);
+    await expect(configPage.dialogFullscreenButton).toBeVisible();
+    const editorBox = await configPage.jsonEditor.boundingBox();
+    expect(editorBox!.height).toBeGreaterThanOrEqual(340);
+
+    // 非法 JSON：确定被拦截，值字段下出现格式错误提示
+    await configPage.fillJsonEditor('{"a":1,');
+    await configPage.clickDialogConfirm();
+    const jsonError = configPage.dialogFieldError('参数键值');
+    // 只断言文字存在会漏掉“提示被弹窗滚动区裁掉、用户看不见”的情况，必须断言可见且在视口内
+    await expect(jsonError).toContainText('JSON 格式不正确');
+    await expect(jsonError).toBeVisible();
+    await expect(jsonError).toBeInViewport();
+    await expect(dialog).toBeVisible();
+
+    // 合法 JSON：格式化为两空格缩进后保存
+    await configPage.fillJsonEditor('{"b":1,"a":[1,2]}');
+    await configPage.jsonFormatButton.click();
+    await expect(configPage.jsonEditorContent).toContainText('"b": 1,');
+    await configPage.confirmDialog();
+    await expect(
+      adminPage.getByText(/创建成功|Created successfully|success/i).first(),
+    ).toBeVisible({ timeout: 5000 });
+
+    // 重新打开编辑：入库是紧凑文本，编辑器打开时格式化展示
+    await configPage.openEditByKey(jsonKey);
+    await expect(configPage.jsonEditor).toBeVisible();
+    await expect(configPage.jsonEditorContent).toContainText('"b": 1,');
+    await expect(configPage.jsonEditorContent).toContainText('"a": [');
+    // 列表里存的应是紧凑文本，不应带缩进换行
+    const storedValue = await configPage.getRowCellTextByKey(
+      jsonKey,
+      '参数键值',
+    );
+    expect(storedValue).toBe('{"b":1,"a":[1,2]}');
+    await adminPage.keyboard.press('Escape');
+    await dialog.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+
+    await configPage.delete(jsonName);
+  });
 });

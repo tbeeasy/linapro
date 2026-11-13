@@ -1,4 +1,5 @@
 export type ConfigValueType =
+  | 'json'
   | 'text'
   | 'textarea'
   | 'number'

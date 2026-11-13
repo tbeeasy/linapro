@@ -2,6 +2,7 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeGridProps } from '#/adapter/vxe-table';
 import type { ConfigValueOption, ConfigValueType } from '#/api/system/config/model';
 
+import { z } from '#/adapter/form';
 import { $t } from '#/locales';
 import { formatTimestamp } from '#/utils/time';
 
@@ -75,6 +76,7 @@ export function getValueTypeOptions() {
       value: 'multi_select',
     },
     { label: $t('pages.system.config.valueTypes.richtext'), value: 'richtext' },
+    { label: $t('pages.system.config.valueTypes.json'), value: 'json' },
   ] as const;
 }
 
@@ -85,7 +87,7 @@ export function isEnumValueType(valueType?: string) {
 /**
  * Modal density tiers for the parameter create/edit dialog.
  * Compact keeps the default mid-size form; spacious expands width and editing
- * surface for long content (richtext / long textarea).
+ * surface for long content (richtext / json / long textarea).
  */
 export type ConfigModalDensity = 'compact' | 'spacious';
 
@@ -103,10 +105,9 @@ export interface ConfigModalLayout {
   /** Whether the modal title bar shows the fullscreen control. */
   fullscreenButton: boolean;
   /**
-   * CSS length for richtext editor min/max height (viewport-relative).
-   * Empty when the active type is not richtext.
+   * richtext / json 编辑区高度（视口相对的 CSS 长度）；其他类型为空串。
    */
-  richtextEditorHeight: string;
+  editorHeight: string;
   /** Textarea min rows when valueType is textarea. */
   textareaMinRows: number;
 }
@@ -117,7 +118,7 @@ const COMPACT_MODAL_LAYOUT: ConfigModalLayout = {
   modalClass: '',
   contentClass: '',
   fullscreenButton: false,
-  richtextEditorHeight: '',
+  editorHeight: '',
   textareaMinRows: 3,
 };
 
@@ -129,6 +130,17 @@ export function resolveConfigModalLayout(
   valueType?: ConfigValueType | string,
 ): ConfigModalLayout {
   switch (valueType) {
+    case 'json': {
+      // 大段 JSON 与富文本同档：宽弹窗、可全屏、视口相对的编辑区高度
+      return {
+        density: 'spacious',
+        modalClass: 'w-[min(960px,96vw)] max-w-[96vw]',
+        contentClass: 'config-param-modal-content',
+        fullscreenButton: true,
+        editorHeight: 'clamp(360px, 52vh, 640px)',
+        textareaMinRows: 3,
+      };
+    }
     case 'richtext':
       return {
         density: 'spacious',
@@ -138,7 +150,7 @@ export function resolveConfigModalLayout(
           'config-param-modal-content config-param-modal-content--richtext',
         fullscreenButton: true,
         // Floor 360px, prefer ~half viewport, ceiling 640px for large screens.
-        richtextEditorHeight: 'clamp(360px, 52vh, 640px)',
+        editorHeight: 'clamp(360px, 52vh, 640px)',
         textareaMinRows: 3,
       };
     case 'textarea':
@@ -147,7 +159,7 @@ export function resolveConfigModalLayout(
         modalClass: 'w-[min(720px,94vw)] max-w-[94vw]',
         contentClass: 'config-param-modal-content',
         fullscreenButton: true,
-        richtextEditorHeight: '',
+        editorHeight: '',
         textareaMinRows: 8,
       };
     default:
@@ -420,6 +432,33 @@ export function coerceValueForType(
   return value == null ? '' : String(value);
 }
 
+/** 判断文本是否为合法 JSON；只做合法性校验，结构不限。 */
+export function isValidJsonText(value: unknown): boolean {
+  if (typeof value !== 'string' || !value.trim()) {
+    return false;
+  }
+  try {
+    JSON.parse(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** json 类型值字段的校验规则：必填，且必须是合法 JSON。 */
+function buildJsonValueRule() {
+  return z
+    .string()
+    .min(1, {
+      message: $t('ui.formRules.required', [
+        $t('pages.system.config.fields.value'),
+      ]),
+    })
+    .refine((value) => isValidJsonText(value), {
+      message: $t('pages.system.config.messages.jsonInvalid'),
+    });
+}
+
 export function valueFieldSchema(params: {
   valueType: ConfigValueType | string;
   configKey: string;
@@ -431,6 +470,18 @@ export function valueFieldSchema(params: {
   const layout = resolveConfigModalLayout(valueType);
 
   switch (valueType) {
+    case 'json': {
+      return {
+        component: 'JsonEditor',
+        componentProps: {
+          height: layout.editorHeight,
+          class: 'w-full',
+          placeholder: $t('pages.system.config.placeholders.json'),
+        },
+        formItemClass: 'items-start w-full',
+        rules: buildJsonValueRule(),
+      };
+    }
     case 'textarea':
       return {
         component: 'Textarea',
@@ -449,8 +500,8 @@ export function valueFieldSchema(params: {
         component: 'RichText',
         componentProps: {
           // Viewport-relative pane: fixed band with internal scroll (not a short 280px strip).
-          height: layout.richtextEditorHeight,
-          maxHeight: layout.richtextEditorHeight,
+          height: layout.editorHeight,
+          maxHeight: layout.editorHeight,
           class: 'w-full',
           placeholder: $t('pages.system.config.placeholders.richtext'),
         },

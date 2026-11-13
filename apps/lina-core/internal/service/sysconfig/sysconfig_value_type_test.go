@@ -86,6 +86,69 @@ func TestCreateBooleanRejectsNonTrueFalse(t *testing.T) {
 	}
 }
 
+// TestCreateJSONRejectsInvalidJSON 验证 json 类型的非法值映射为类型值错误码。
+func TestCreateJSONRejectsInvalidJSON(t *testing.T) {
+	ctx := context.Background()
+	key := fmt.Sprintf("test.json.bad.%d", time.Now().UnixNano())
+	_, err := New(nil, nil).Create(ctx, CreateInput{
+		Name:      "JSON bad",
+		Key:       key,
+		Value:     `{"a":1,}`,
+		ValueType: configvaluetype.JSON.String(),
+	})
+	if !bizerr.Is(err, CodeSysConfigTypedValueInvalid) {
+		t.Fatalf("expected typed value invalid, got %v", err)
+	}
+}
+
+// TestCreateJSONPersistsCompact 验证 json 值入库前去掉空白，但内容、键序与数字精度不变。
+func TestCreateJSONPersistsCompact(t *testing.T) {
+	ctx := context.Background()
+	key := fmt.Sprintf("test.json.%d", time.Now().UnixNano())
+	// 含缩进、换行、键序非字典序，以及超过 float64 精度的大整数
+	value := "{\n  \"b\": 12345678901234567890,\n  \"a\": [1, 2],\n  \"s\": \"含 空格 与 \\\"引号\\\"\"\n}"
+	id, err := New(nil, nil).Create(ctx, CreateInput{
+		Name:      "JSON test",
+		Key:       key,
+		Value:     value,
+		ValueType: configvaluetype.JSON.String(),
+	})
+	if err != nil {
+		t.Fatalf("create json config: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = dao.SysConfig.Ctx(ctx).Unscoped().Where(do.SysConfig{Id: id}).Delete()
+	})
+
+	var row *entity.SysConfig
+	if err = dao.SysConfig.Ctx(ctx).Where(do.SysConfig{Id: id}).Scan(&row); err != nil {
+		t.Fatalf("scan: %v", err)
+	}
+	if row.ValueType != configvaluetype.JSON.String() {
+		t.Fatalf("expected json type, got %q", row.ValueType)
+	}
+	want := `{"b":12345678901234567890,"a":[1,2],"s":"含 空格 与 \"引号\""}`
+	if row.Value != want {
+		t.Fatalf("expected compact value %q, got %q", want, row.Value)
+	}
+}
+
+// TestCompactJSONValue 验证压缩只删空白，非法 JSON 原样返回。
+func TestCompactJSONValue(t *testing.T) {
+	cases := map[string]string{
+		"{\n\t\"a\": 1\n}": `{"a":1}`,
+		"  [1, 2]  ":       `[1,2]`,
+		`"a  b"`:           `"a  b"`,
+		"{bad}":            "{bad}",
+		"   ":              "",
+	}
+	for input, want := range cases {
+		if got := compactJSONValue(input); got != want {
+			t.Fatalf("compact %q: expected %q, got %q", input, want, got)
+		}
+	}
+}
+
 // TestUpdateBuiltinRejectsTypeChange verifies built-in type/options stay locked.
 func TestUpdateBuiltinRejectsTypeChange(t *testing.T) {
 	ctx := context.Background()

@@ -371,7 +371,8 @@
         "deleteSelectedConfirm": "Delete the selected {count} record(s)?",
         "exportSelectedConfirm": "Export the selected records?",
         "exportAllConfirm": "Export all data?",
-        "optionsRequired": "Enum parameter types require an options list"
+        "optionsRequired": "Enum parameter types require an options list",
+        "jsonInvalid": "Invalid JSON. Check brackets, quotes, and commas"
       },
       "import": {
         "title": "Import Parameter Settings",
@@ -393,7 +394,8 @@
         "select": "Select",
         "radio": "Radio",
         "multi_select": "Multi Select",
-        "richtext": "Rich Text"
+        "richtext": "Rich Text",
+        "json": "JSON"
       },
       "boolean": {
         "true": "True",
@@ -406,7 +408,8 @@
       "placeholders": {
         "optionsJson": "[{\"label\":\"Label\",\"value\":\"option-value\"}]",
         "optionsSimple": "Left=panel-left\nCenter=panel-center\nRight=panel-right",
-        "richtext": "Enter rich text content"
+        "richtext": "Enter rich text content",
+        "json": "Enter JSON text: an object, an array, or a single value"
       }
     },
     "dict": {
@@ -1188,6 +1191,10 @@
   },
   "editor": {
     "placeholder": "Please enter content...",
+    "json": {
+      "format": "Format",
+      "formatInvalid": "Cannot format: content is not valid JSON or has duplicate keys"
+    },
     "actions": {
       "undo": "Undo",
       "redo": "Redo",

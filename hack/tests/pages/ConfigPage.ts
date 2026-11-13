@@ -254,6 +254,30 @@ export class ConfigPage {
     return this.dialog.getByTestId("tiptap-editor-content");
   }
 
+  /** JSON 代码编辑器（CodeMirror）外壳。 */
+  get jsonEditor() {
+    return this.dialog.getByTestId("json-editor");
+  }
+
+  /** CodeMirror 的可编辑内容区，用于读取当前文本。 */
+  get jsonEditorContent() {
+    return this.jsonEditor.locator(".cm-content");
+  }
+
+  get jsonFormatButton() {
+    return this.dialog.getByTestId("json-editor-format");
+  }
+
+  /**
+   * 整体替换 JSON 编辑器内容；用 insertText 一次写入，避免逐字输入触发括号自动补全。
+   */
+  async fillJsonEditor(text: string) {
+    await this.jsonEditorContent.click();
+    await this.page.keyboard.press("ControlOrMeta+A");
+    await this.page.keyboard.press("Delete");
+    await this.page.keyboard.insertText(text);
+  }
+
   /** Fullscreen toggle in the Vben modal header (visible for spacious types). */
   get dialogFullscreenButton() {
     return this.dialog.locator("button.absolute.top-3.right-10");
@@ -420,6 +444,40 @@ export class ConfigPage {
     const row = this.findRowByExactKey(key);
     await row.waitFor({ state: "visible", timeout: 5000 });
     return row.getByRole("button", { name: /编\s*辑|Edit/i }).first();
+  }
+
+  /**
+   * 读取某行指定列的原始文本。按表头解析 vxe 的列 class（如 col_3），
+   * 再在同一行里取对应单元格，避免依赖列顺序硬编码。
+   */
+  async getRowCellTextByKey(
+    key: string,
+    headerLabel: string,
+  ): Promise<string> {
+    const headerCell = this.page
+      .locator(".vxe-header--column")
+      .filter({ hasText: this.localizedLabelPattern(headerLabel) })
+      .first();
+    await headerCell.waitFor({ state: "visible", timeout: 5000 });
+
+    const colIdClass = await headerCell.evaluate((el) => {
+      const classes = Array.from(el.classList);
+      return (
+        classes.find((name) => /^col_[A-Za-z0-9]+$/.test(name)) ??
+        classes.find(
+          (name) => name.startsWith("col_") && !name.startsWith("col--"),
+        ) ??
+        ""
+      );
+    });
+    if (!colIdClass) {
+      throw new Error(`无法从表头解析列 class：${headerLabel}`);
+    }
+
+    const row = this.findRowByExactKey(key);
+    await row.waitFor({ state: "visible", timeout: 5000 });
+    const cell = row.locator(`.vxe-body--column.${colIdClass}`).first();
+    return (await cell.innerText()).trim();
   }
 
   async getDeleteButtonById(id: number): Promise<Locator> {

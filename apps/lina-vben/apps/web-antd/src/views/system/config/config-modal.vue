@@ -44,6 +44,9 @@ const title = computed(() =>
 const [BasicForm, formApi] = useVbenForm({
   schema: buildModalSchema({ isEdit: false, isBuiltin: false }),
   showDefaultActions: false,
+  // spacious 类型的值编辑器高度固定，校验错误提示会落到弹窗滚动区下方被裁掉；
+  // 表单校验失败后滚动到第一个错误字段，用户才能看到提示。
+  scrollToFirstError: true,
   // Switching valueType remounts the value control; keep model-update validation off
   // so required rules do not flash while the user is only picking a type.
   commonConfig: {
@@ -173,7 +176,9 @@ async function refreshValueFieldSchema(values: Record<string, any>) {
   });
   // multi_select is optional until the user picks choices; required would force
   // an empty array into invalid states while switching types.
-  const valueRules = valueType === 'multi_select' ? undefined : 'required';
+  // json 等类型自带校验规则（如 JSON 合法性），优先使用分支返回的规则。
+  const valueRules =
+    schema.rules ?? (valueType === 'multi_select' ? undefined : 'required');
   await formApi.updateSchema([
     {
       fieldName: 'value',

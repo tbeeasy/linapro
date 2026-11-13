@@ -208,6 +208,13 @@ func ValidateTypedValue(valueType Code, optionsRaw string, value string) error {
 				return gerror.Newf("config value %q is not in the allowed options", part)
 			}
 		}
+	case JSON:
+		if strings.TrimSpace(value) == "" {
+			return gerror.New("json config value is required")
+		}
+		if !json.Valid([]byte(value)) {
+			return gerror.New("json config value must be valid JSON")
+		}
 	case Text, Textarea, Richtext:
 		// No additional shape checks.
 	}

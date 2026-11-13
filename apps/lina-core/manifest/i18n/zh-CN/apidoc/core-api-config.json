@@ -55,7 +55,7 @@
                             "dc": "覆盖动作模式，例如 none 或 createTenantOverride"
                           },
                           "valueType": {
-                            "dc": "参数值输入类型：text、textarea、number、boolean、select、radio、multi_select、richtext"
+                            "dc": "参数值输入类型：text、textarea、number、boolean、select、radio、multi_select、richtext、json"
                           },
                           "options": {
                             "dc": "select/radio/multi_select 的可选选项列表；其他类型为空"
@@ -107,7 +107,7 @@
                 "dc": "覆盖动作模式，例如 none 或 createTenantOverride"
               },
               "valueType": {
-                "dc": "参数值输入类型：text、textarea、number、boolean、select、radio、multi_select、richtext"
+                "dc": "参数值输入类型：text、textarea、number、boolean、select、radio、multi_select、richtext、json"
               },
               "options": {
                 "dc": "select/radio/multi_select 的可选选项列表；其他类型为空"
@@ -198,7 +198,7 @@
                 "dc": "参数键值"
               },
               "valueType": {
-                "dc": "参数值输入类型：text、textarea、number、boolean、select、radio、multi_select、richtext"
+                "dc": "参数值输入类型：text、textarea、number、boolean、select、radio、multi_select、richtext、json"
               },
               "options": {
                 "dc": "select/radio/multi_select 的可选选项列表；其他类型为空"
@@ -331,7 +331,7 @@
                             "dc": "覆盖动作模式，例如 none 或 createTenantOverride"
                           },
                           "valueType": {
-                            "dc": "参数值输入类型：text、textarea、number、boolean、select、radio、multi_select、richtext"
+                            "dc": "参数值输入类型：text、textarea、number、boolean、select、radio、multi_select、richtext、json"
                           },
                           "options": {
                             "dc": "select/radio/multi_select 的可选选项列表；其他类型为空"
@@ -383,7 +383,7 @@
                 "dc": "覆盖动作模式，例如 none 或 createTenantOverride"
               },
               "valueType": {
-                "dc": "参数值输入类型：text、textarea、number、boolean、select、radio、multi_select、richtext"
+                "dc": "参数值输入类型：text、textarea、number、boolean、select、radio、multi_select、richtext、json"
               },
               "options": {
                 "dc": "select/radio/multi_select 的可选选项列表；其他类型为空"
@@ -459,7 +459,7 @@
                 "dc": "参数键值"
               },
               "valueType": {
-                "dc": "参数值输入类型：text、textarea、number、boolean、select、radio、multi_select、richtext"
+                "dc": "参数值输入类型：text、textarea、number、boolean、select、radio、multi_select、richtext、json"
               },
               "options": {
                 "dc": "select/radio/multi_select 的可选选项列表；其他类型为空"
@@ -487,7 +487,7 @@
                       "dc": "参数键值"
                     },
                     "valueType": {
-                      "dc": "参数值输入类型：text、textarea、number、boolean、select、radio、multi_select、richtext"
+                      "dc": "参数值输入类型：text、textarea、number、boolean、select、radio、multi_select、richtext、json"
                     },
                     "options": {
                       "dc": "select/radio/multi_select 的可选选项列表；其他类型为空"
@@ -521,7 +521,7 @@
                 "dc": "覆盖动作模式，例如 none 或 createTenantOverride"
               },
               "valueType": {
-                "dc": "参数值输入类型：text、textarea、number、boolean、select、radio、multi_select、richtext"
+                "dc": "参数值输入类型：text、textarea、number、boolean、select、radio、multi_select、richtext、json"
               },
               "options": {
                 "dc": "select/radio/multi_select 的可选选项列表；其他类型为空"

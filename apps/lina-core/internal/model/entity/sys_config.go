@@ -15,7 +15,7 @@ type SysConfig struct {
 	Name             string     `json:"name"             orm:"name"              description:"Config parameter name"`
 	Key              string     `json:"key"              orm:"key"               description:"Config parameter key"`
 	Value            string     `json:"value"            orm:"value"             description:"Config parameter value"`
-	ValueType        string     `json:"valueType"        orm:"value_type"        description:"Parameter value input type: text, textarea, number, boolean, select, radio, multi_select, richtext"`
+	ValueType        string     `json:"valueType"        orm:"value_type"        description:"Parameter value input type: text, textarea, number, boolean, select, radio, multi_select, richtext, json"`
 	Options          string     `json:"options"          orm:"options"           description:"JSON array of {label,value} options for select/radio/multi_select; empty for other types"`
 	IsBuiltin        int        `json:"isBuiltin"        orm:"is_builtin"        description:"Built-in record flag: 1=yes, 0=no"`
 	SystemManageable int        `json:"systemManageable" orm:"system_manageable" description:"Whether the parameter may be listed and mutated on the system config management page: 1=yes, 0=no (plugin closed-loop settings)"`

@@ -15,7 +15,7 @@ type UpdateReq struct {
 	Name      *string               `json:"name" dc:"Parameter name" eg:"Main frame page-default skin style name"`
 	Key       *string               `json:"key" dc:"Parameter key name (unique identifier)" eg:"sys.index.skinName"`
 	Value     *string               `json:"value" dc:"Parameter key value" eg:"skin-blue"`
-	ValueType *configvaluetype.Code `json:"valueType" dc:"Value input type: text, textarea, number, boolean, select, radio, multi_select, richtext; built-in parameters cannot change type" eg:"select"`
+	ValueType *configvaluetype.Code `json:"valueType" dc:"Value input type: text, textarea, number, boolean, select, radio, multi_select, richtext, json; built-in parameters cannot change type" eg:"select"`
 	Options   *[]ConfigValueOption  `json:"options" dc:"Selectable options for select/radio/multi_select; built-in parameters cannot change options" eg:"[{\"label\":\"Blue\",\"value\":\"skin-blue\"}]"`
 	Remark    *string               `json:"remark" dc:"Remarks" eg:"blue skin-blue, green skin-green"`
 }

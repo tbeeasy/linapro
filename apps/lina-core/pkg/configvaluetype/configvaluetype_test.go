@@ -109,3 +109,32 @@ func TestNormalizeMultiSelectValue(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+// TestValidateTypedValueJSON 验证 json 类型只校验合法性、不约束结构。
+func TestValidateTypedValueJSON(t *testing.T) {
+	t.Parallel()
+	for _, value := range []string{`{"a":1}`, "{\n  \"a\": [1, 2]\n}", `[1,2]`, `"abc"`, `42`, `null`} {
+		if err := ValidateTypedValue(JSON, "", value); err != nil {
+			t.Fatalf("json %q should pass: %v", value, err)
+		}
+	}
+	for _, value := range []string{`{"a":1,}`, `{a:1}`, "", "   "} {
+		if err := ValidateTypedValue(JSON, "", value); err == nil {
+			t.Fatalf("json %q should be rejected", value)
+		}
+	}
+}
+
+// TestAllIncludesJSON 验证 json 已进入封闭类型集合。
+func TestAllIncludesJSON(t *testing.T) {
+	t.Parallel()
+	found := false
+	for _, code := range All() {
+		if code == JSON {
+			found = true
+		}
+	}
+	if !found || !JSON.IsSupported() || Normalize("json") != JSON {
+		t.Fatal("json should be a supported value type")
+	}
+}
