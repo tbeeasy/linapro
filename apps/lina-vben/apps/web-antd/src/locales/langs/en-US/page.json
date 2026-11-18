@@ -101,7 +101,15 @@
   },
   "empLayout": {
     "title": "Employee Portal",
-    "logout": "Logout"
+    "logout": "Logout",
+    "login": {
+      "notInLark": "Please open in Feishu",
+      "notInLarkHint": "This page needs your Feishu identity. Open it from the Feishu message card or the Feishu workplace.",
+      "sdkUnavailable": "Failed to load the Feishu client SDK. Check your network and retry.",
+      "authCodeFailed": "Failed to get Feishu sign-in authorization ({detail}). Please retry.",
+      "appIdMissing": "Missing Feishu app id. Please open from the Feishu message card.",
+      "failed": "Login failed. Please retry."
+    }
   },
   "eval360Emp": {
     "layoutTitle": "360 Performance Evaluation",

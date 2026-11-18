@@ -101,7 +101,15 @@
   },
   "empLayout": {
     "title": "员工端",
-    "logout": "退出"
+    "logout": "退出",
+    "login": {
+      "notInLark": "请在飞书中打开",
+      "notInLarkHint": "该页面需要飞书身份，请从飞书消息卡片或飞书工作台进入。",
+      "sdkUnavailable": "飞书客户端组件加载失败，请检查网络后重试。",
+      "authCodeFailed": "获取飞书免登授权失败（{detail}），请重试。",
+      "appIdMissing": "缺少飞书应用 id，请通过飞书消息卡片进入。",
+      "failed": "登录失败，请重试。"
+    }
   },
   "eval360Emp": {
     "layoutTitle": "360度绩效评估系统",

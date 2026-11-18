@@ -5,7 +5,6 @@ import { preferences } from '@vben/preferences';
 import { useAccessStore, useUserStore } from '@vben/stores';
 import { startProgress, stopProgress } from '@vben/utils';
 
-import { pendingEmpOauthLoginPath } from '#/api/emp/lark';
 import { accessRoutes, coreRouteNames } from '#/router/routes';
 import { useAuthStore, useEmpAuthStore, useTenantStore } from '#/store';
 
@@ -68,20 +67,16 @@ function setupCommonGuard(router: Router) {
  * 员工端守卫：守卫所有声明了 meta.empRegion 的路由（平行认证链，与 admin 会话隔离）。
  * 注册在 setupAccessGuard 之前，beforeEach 按注册顺序执行：
  *   - 非 empRegion 路径直接放行，不影响 admin 守卫；
- *   - 飞书授权回调若落在非登录页（回跳地址 # 段被剥离），按 OAuth state 接回其登录页换票；
  *   - 路由 query 携带 larkAppId（员工卡片链接）时持久化到员工 store，供登录与 401 重登选用应用；
  *   - empPublic 页（如 login）始终放行；
- *   - 其余员工页无员工 JWT 则重定向到该 region 声明的 empLoginPath（带 redirect）。
+ *   - 其余员工页无员工 JWT 则重定向到该 region 声明的 empLoginPath（带 redirect），
+ *     由登录页在飞书内经 JSAPI 原地免登，非飞书环境提示「请在飞书中打开」。
  * 员工页 meta.ignoreAccess=true 会让随后的 setupAccessGuard 放行。
  * 该守卫按 meta 识别 region，不绑定任何业务插件路径：新增员工端（如考勤）只需在自己的
  * 路由根声明 empRegion/empLoginPath 即可复用，无需改动本文件。
  */
 function setupEmpGuard(router: Router) {
   router.beforeEach((to) => {
-    const pendingLoginPath = pendingEmpOauthLoginPath();
-    if (pendingLoginPath && to.path !== pendingLoginPath) {
-      return { path: pendingLoginPath, replace: true };
-    }
     if (!to.meta.empRegion) {
       return true;
     }
@@ -259,4 +254,4 @@ function createRouterGuard(router: Router) {
   setupAccessGuard(router);
 }
 
-export { createRouterGuard };
+export { createRouterGuard, setupEmpGuard };
