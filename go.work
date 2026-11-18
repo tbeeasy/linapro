@@ -9,6 +9,7 @@ use (
 	./apps/lina-plugins/linapro-moka-hcm
 	./apps/lina-plugins/linapro-moka-recruit
 	./apps/lina-plugins/linapro-moka-report-sync
+	./apps/lina-plugins/linapro-monitor-apilog
 	./apps/lina-plugins/linapro-recruit-pipeline
 	./hack/tools/emptoken
 	./hack/tools/linactl
