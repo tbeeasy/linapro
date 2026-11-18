@@ -58,8 +58,19 @@ _anchors:
   # 引用方：employee-core.lark_apps、lark-push.push_groups、moka-report-sync、recruit-pipeline。
   lark_hegs_app_id: &lark_hegs_app_id "" # 霍尔果斯飞书
   lark_hegs_secret: &lark_hegs_secret ""
+  # 显示名只用于后台展示（员工详情的飞书身份列、绑定身份下拉），不参与寻址；
+  # 不参与签名与鉴权，改名不影响任何调用。
+  lark_hegs_name: &lark_hegs_name ""
   lark_xj_app_id: &lark_xj_app_id "" # 广州星嘉飞书
   lark_xj_secret: &lark_xj_secret ""
+  lark_xj_name: &lark_xj_name ""
+  # 「360测评助手」应用（每企业一个）：既是 lark-push 的测评推送应用，也是员工端网页应用 / 免登应用。
+  # 引用方：lark-push.push_groups.linapro-eval-360、employee-core.lark_apps（免登应用）、
+  # eval-360.card_templates。须在飞书后台开通网页应用与「获取用户 user ID」权限。
+  eval360_hegs_app_id: &eval360_hegs_app_id "" # 360测评助手(霍尔果斯)
+  eval360_hegs_secret: &eval360_hegs_secret ""
+  eval360_xj_app_id: &eval360_xj_app_id "" # 360测评助手(星嘉)
+  eval360_xj_secret: &eval360_xj_secret ""
   # 飞书 Bitable 读写所用应用（moka-report-sync / recruit-pipeline），用 <<: 合并进插件段。
   lark_bitable: &lark_bitable
     lark:
@@ -125,12 +136,12 @@ plugin:
     # 预警 / 通知类分组须用独立推送应用，不得走考勤机器人；考勤分组则直接用身份应用本身发。
     push_groups:
       linapro-eval-360:
-        - app_id: &eval360_hegs_app_id "" # 霍尔果斯测评推送应用（card_templates 引用）
-          secret_key: ""
+        - app_id: *eval360_hegs_app_id # 霍尔果斯测评推送应用（凭据登记在 _anchors）
+          secret_key: *eval360_hegs_secret
           name: "360测评助手(霍尔果斯)"
           identity_app_id: *lark_hegs_app_id
-        - app_id: &eval360_xj_app_id "" # 星嘉测评推送应用（card_templates 引用）
-          secret_key: ""
+        - app_id: *eval360_xj_app_id # 星嘉测评推送应用（凭据登记在 _anchors）
+          secret_key: *eval360_xj_secret
           name: "360测评助手(星嘉)"
           identity_app_id: *lark_xj_app_id
       # linapro-attend-poc: # 考勤消息：用两个企业的身份应用本身（考勤机器人）发送，前提是应用已开启机器人能力
@@ -162,18 +173,36 @@ plugin:
   linapro-employee-core: # 员工核心：飞书多企业 App 凭证（登录换 open_id + 通讯录同步用）
     emp_jwt_secret: ""
     sync_interval_minutes: 59 # 同步周期，表达式为 0 %d * * * *（可选，默认0分钟0秒开始执行，1表示1分0秒开始执行；改值需重启）
-    lark_apps: # 凭据登记在 _anchors，这里只引用
+    lark_apps: # 凭据与显示名都登记在 _anchors，这里只引用
+      # 两类应用平铺登记、以有无 identity_app_id 区分：
+      #   - 身份应用（无 identity_app_id）：通讯录同步、写身份映射、后台绑定下拉，登录按 open_id 查员工；
+      #   - 免登应用（有 identity_app_id）：只用于员工端免登，同步与后台下拉看不到它；登录换票取
+      #     user_id，按 identity_app_id 指向的身份应用查员工。identity_app_id 须指向本清单里的身份应用。
       - app_id: *lark_hegs_app_id # 霍尔果斯飞书
         secret_key: *lark_hegs_secret
+        name: *lark_hegs_name # 留空则界面上只显示 app_id
         assoc: true
       - app_id: *lark_xj_app_id # 广州星嘉飞书
         secret_key: *lark_xj_secret
+        name: *lark_xj_name
         assoc: false
+      - app_id: *eval360_hegs_app_id # 免登应用：360 测评卡片打开的网页应用
+        secret_key: *eval360_hegs_secret
+        name: "360测评助手(霍尔果斯)"
+        identity_app_id: *lark_hegs_app_id
+      - app_id: *eval360_xj_app_id # 免登应用：360 测评卡片打开的网页应用
+        secret_key: *eval360_xj_secret
+        name: "360测评助手(星嘉)"
+        identity_app_id: *lark_xj_app_id
     # Moka HCM 凭证：全量同步 job 拉全量员工用。缺任一必填项，同步会以
     # "incomplete Moka HCM credentials" 报错并跳过（不会拉到员工）。
     <<: [*moka]
   linapro-eval-360:
     todo_h5_url: "https://xj-aass.luckystar001.top/admin/#/eval-360/emp/todo" # 生产是 hash 路由
+    # 卡片固定以飞书「网页应用」形态打开（web_app/open，落在飞书导航栏标签页），appId 与链接 larkAppId
+    # 自动取发送该卡片的推送应用（360测评助手）本身，无需配置。每个推送应用都须在飞书后台开通网页应用
+    # （H5 可信域名、重定向 URL）与「获取用户 user ID」权限，并在上面 employee-core.lark_apps 中登记为
+    # 免登应用，否则该企业的卡片打不开或免登失败。
     # 卡片模板按推送应用分别配置（模板归属具体应用、跨企业不可复用，无全局兜底）。
     # app_id 引用上面 push_groups.linapro-eval-360 的推送应用；template_version 留空=模板当前发布版本。
     card_templates:
