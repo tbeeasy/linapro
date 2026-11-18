@@ -71,6 +71,13 @@ _anchors:
   eval360_hegs_secret: &eval360_hegs_secret ""
   eval360_xj_app_id: &eval360_xj_app_id "" # 360测评助手(星嘉)
   eval360_xj_secret: &eval360_xj_secret ""
+  # 运维告警群（分区缺失、定时任务失败等）。各插件按需引用，读的仍是自己的键
+  # （例如 plugin.linapro-monitor-apilog.alert），锚点只解决「只写一遍」。
+  ops_alert: &ops_alert
+    app_id: "" # 告警专用飞书应用，不参与业务推送
+    secret_key: ""
+    chat_id: "" # 告警群；应用须已被拉进该群且开了机器人能力
+    interval: "30m" # 同一告警的防抖窗口，缺省 30m
   # 飞书 Bitable 读写所用应用（moka-report-sync / recruit-pipeline），用 <<: 合并进插件段。
   lark_bitable: &lark_bitable
     lark:
@@ -108,6 +115,7 @@ plugin:
     - id: "linapro-employee-core" # 员工系统核心
     - id: "linapro-lark-push" # 飞书消息推送能力（须排在 linapro-employee-core 之后：数组顺序即启用顺序）
     - id: "linapro-eval-360" # 360 度绩效测评
+    - id: "linapro-monitor-apilog" # api接口
     # - id: "linapro-moka-report-sync" # Moka 报表数据定时同步到飞书 Bitable
     # - id: "linapro-recruit-pipeline" # Moka 招聘相关表同步到飞书 Bitable
 
@@ -165,11 +173,18 @@ plugin:
           identity_app_id: *lark_hegs_app_id
     # 对外 HTTP 接口（/open/v1）的 HMAC 签名凭据不在本文件配置：在后台「系统设置 → 飞书推送凭据」
     # 维护（app_key / secret / 绑定分组 / 启停），每次请求查库，修改即时生效。
-    alert: # 部署与数据缺陷告警（可选）。留空则只写日志、不推群
-      app_id: "" # 告警专用飞书应用，不参与业务推送
-      secret_key: ""
-      chat_id: "" # 告警群；应用须已被拉进该群且开了机器人能力
-      interval: "30m" # 同一告警的防抖窗口，缺省 30m
+    alert: *ops_alert # 部署与数据缺陷告警（可选）。留空则只写日志、不推群
+  linapro-monitor-apilog: # 接口请求日志：非管理后台接口的请求与响应，只增不删
+    # 按归属插件排除。键缺失时回落到代码内置默认值 [linapro-lark-push]，
+    # 不是当成空列表——漏抄一个键不能让 lark-push 的消息正文静默开始落库。
+    # 显式写 [] 才是「全量记录」这一有意选择。
+    exclude_route_owners: [linapro-lark-push]
+    # 按路径前缀排除单条高频接口（如健康检查）。
+    exclude_paths: []
+    # 追加脱敏的字段名，与内置名单合并。
+    mask_fields: []
+    # 分区补齐失败时的运维告警通道；凭据登记在 _anchors.ops_alert。
+    alert: *ops_alert
   linapro-employee-core: # 员工核心：飞书多企业 App 凭证（登录换 open_id + 通讯录同步用）
     emp_jwt_secret: ""
     sync_interval_minutes: 59 # 同步周期，表达式为 0 %d * * * *（可选，默认0分钟0秒开始执行，1表示1分0秒开始执行；改值需重启）
