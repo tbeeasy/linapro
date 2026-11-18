@@ -5,83 +5,82 @@ import { useRoute, useRouter } from 'vue-router';
 import { Result as AResult, Spin as ASpin } from 'ant-design-vue';
 
 import {
-  buildLarkOauthURL,
-  readEmpOauthCallback,
+  describeEmpLoginError,
+  EmpLarkAuthError,
+  isLarkClient,
+  loginWithLark,
   resolveEmpLarkAppId,
-  resolveEmpPageURL,
   sanitizeEmpRedirect,
-  stripEmpOauthSearch,
 } from '#/api/emp/lark';
-import { empLoginApi, toEmpProfile } from '#/api/emp/login';
 import { $t } from '#/locales';
 import { useEmpAuthStore } from '#/store/emp-auth';
 
+// 登录页只做编排：免登流程（取 code、换票、写 store）与错误文案都在平台级 #/api/emp/lark。
 const defaultRedirect = '/eval-360/emp/todo';
 
 const route = useRoute();
 const router = useRouter();
 const empStore = useEmpAuthStore();
 
-const status = ref<'error' | 'exchanging' | 'idle' | 'missing-appid'>('idle');
+const status = ref<
+  'authenticating' | 'error' | 'missing-appid' | 'not-in-lark'
+>('authenticating');
 const errorMsg = ref('');
 
-// 进入页面时一次性解析：飞书回调（code + state）、企业应用 id 与回跳目标。
-// 企业应用 id：路由 query → 授权 state → store（卡片链接写入/上次登录）→ 构建期默认值。
-// 回跳目标：路由 query → 授权 state → 待办页；只接受站内路径。
-const callback = readEmpOauthCallback(route.query);
+// 企业应用 id：路由 query → store（卡片链接写入/上次登录）→ 构建期默认值。
+// 回跳目标：路由 query → 待办页；只接受站内路径。
 const queryLarkAppId =
   typeof route.query.larkAppId === 'string' ? route.query.larkAppId.trim() : '';
-const larkAppId =
-  queryLarkAppId || callback.state?.larkAppId || resolveEmpLarkAppId();
-const redirect = sanitizeEmpRedirect(
-  route.query.redirect ?? callback.state?.redirect,
-  defaultRedirect,
-);
+const larkAppId = queryLarkAppId || resolveEmpLarkAppId();
+const redirect = sanitizeEmpRedirect(route.query.redirect, defaultRedirect);
 
-async function exchange(code: string) {
-  status.value = 'exchanging';
+// 在飞书内原地免登，成功后回到目标页；失败展示原因，「重试」会重新取 code（不复用旧 code）。
+async function signIn() {
+  status.value = 'authenticating';
   try {
-    const res = await empLoginApi({ larkAppId, code });
-    empStore.setToken(res.token, toEmpProfile(res), larkAppId);
+    await loginWithLark(larkAppId);
     await router.replace(redirect);
-  } catch (error: any) {
+  } catch (error) {
+    if (error instanceof EmpLarkAuthError && error.reason === 'not-in-lark') {
+      status.value = 'not-in-lark';
+      return;
+    }
     status.value = 'error';
-    errorMsg.value = error?.message || $t('page.eval360Emp.login.exchanging');
-    // code 一次性有效：失败后从地址栏移除，避免刷新重放。
-    await router.replace({ path: route.path, query: { redirect } });
+    errorMsg.value = describeEmpLoginError(error);
   }
 }
 
-function redirectToLark() {
-  // redirect_uri 为不带参数的登录页地址；企业应用 id 与回跳目标经 state 往返。
-  window.location.href = buildLarkOauthURL(
-    resolveEmpPageURL(router, route.path),
-    { larkAppId, loginPath: route.path, redirect },
-  );
-}
-
 onMounted(() => {
-  // 回调参数若位于页面真实 query（hash 路由下飞书插在 # 之前），读取后立即清理。
-  stripEmpOauthSearch();
+  // 已有员工会话（如本地开发用 emptoken 脚本写入 localStorage）直接回目标页；过期时由 401 原地重登兜底。
+  if (empStore.empToken) {
+    router.replace(redirect);
+    return;
+  }
+  if (!isLarkClient()) {
+    status.value = 'not-in-lark';
+    return;
+  }
   if (!larkAppId) {
     status.value = 'missing-appid';
     return;
   }
-  if (callback.code) {
-    exchange(callback.code);
-  } else {
-    // 无 code → 跳飞书授权页换 code。
-    redirectToLark();
-  }
+  signIn();
 });
 </script>
 
 <template>
   <div class="flex-center h-screen">
     <ASpin
-      v-if="status === 'exchanging'"
+      v-if="status === 'authenticating'"
       size="large"
       :tip="$t('page.eval360Emp.login.exchanging')"
+    />
+    <AResult
+      v-else-if="status === 'not-in-lark'"
+      data-testid="emp-login-not-in-lark"
+      status="info"
+      :title="$t('page.empLayout.login.notInLark')"
+      :sub-title="$t('page.empLayout.login.notInLarkHint')"
     />
     <AResult
       v-else-if="status === 'missing-appid'"
@@ -95,7 +94,7 @@ onMounted(() => {
       </template>
     </AResult>
     <AResult
-      v-else-if="status === 'error'"
+      v-else
       status="error"
       :title="$t('page.eval360Emp.login.errorTitle')"
       :sub-title="errorMsg"
@@ -104,12 +103,11 @@ onMounted(() => {
         <a-button
           data-testid="eval360-emp-login-retry"
           type="primary"
-          @click="redirectToLark"
+          @click="signIn"
         >
           {{ $t('page.eval360Emp.login.retry') }}
         </a-button>
       </template>
     </AResult>
-    <ASpin v-else size="large" />
   </div>
 </template>
