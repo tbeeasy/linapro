@@ -31,3 +31,7 @@ _Avoid_: 鉴权（太泛，且易与授权混）
 **EmpContext**:
 一次请求内携带的员工身份，仅含 `EmpID` 与 `TenantID`——纯身份，不含数据权限（能看什么由消费方各自判断）。
 _Avoid_: 会话、session、principal
+
+**调用方 (Caller)**:
+一次请求的发起者，用于接口请求日志的归属与检索。以 `kind:id` 表示——`emp` 时 id 是 EmpID，`app_key` 时 id 就是 app_key；姓名与工号只作为写入时的快照随行，不承担关联职责，也不用于跨系统对账。
+_Avoid_: 操作人（那是后台管理员，属 operlog）、用户、账号、把工号或姓名当成调用方主键
