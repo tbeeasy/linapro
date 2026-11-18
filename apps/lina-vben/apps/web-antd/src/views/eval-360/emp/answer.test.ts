@@ -4,7 +4,7 @@ import type { QuestionnaireSet, QuestionNode } from '#/api/eval-360/emp-model';
 
 import { flushPromises, mount } from '@vue/test-utils';
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Answer from './answer.vue';
 
@@ -22,9 +22,15 @@ vi.mock('vue-router', () => ({
 }));
 
 let questionSet: QuestionnaireSet;
+// 当前员工 id；为 0 时模拟取不到身份（whoami 失败）。
+let whoamiEmpId = 7;
 const submit = vi.fn();
 vi.mock('#/api/eval-360/emp', () => ({
   evalEmpQuestions: () => Promise.resolve({ set: questionSet }),
+  evalEmpWhoami: () =>
+    whoamiEmpId
+      ? Promise.resolve({ empId: whoamiEmpId, tenantId: 1 })
+      : Promise.reject(new Error('unauthorized')),
   evalEmpSubmit: (data: unknown) => {
     submit(data);
     return Promise.resolve({
@@ -96,9 +102,23 @@ async function mountAnswer() {
     attachTo: document.body,
     global: { mocks: { $t: (key: string) => key } },
   });
+  mounted.push(wrapper);
   await flushPromises();
   return wrapper;
 }
+
+// 作答页卸载时会把答案落到 localStorage：每个用例结束后卸载仍挂载的页面、
+// 每个用例开始前清空存储，保证用例之间不经由暂存互相影响。
+const mounted: VueWrapper[] = [];
+beforeEach(() => {
+  localStorage.clear();
+  whoamiEmpId = 7;
+});
+afterEach(() => {
+  for (const wrapper of mounted.splice(0)) {
+    if (!wrapper.vm.$.isUnmounted) wrapper.unmount();
+  }
+});
 
 const byTestId = (id: string) => `[data-testid="${id}"]`;
 
@@ -116,10 +136,9 @@ describe('answer.vue 一题一页', () => {
     expect(questionTitles()).toHaveLength(1);
     expect(questionTitles()[0]).toContain('第一题');
     expect(wrapper.text()).toContain('维度一');
-    // 角色带「作为」前缀，避免被读成「谁来评价我」。
-    expect(wrapper.text()).toContain(
-      'page.eval360Emp.answer.roleAs:{"role":"同事"}',
-    );
+    // 被评估人旁不显示评价者角色。
+    expect(wrapper.text()).not.toContain('page.eval360Emp.answer.roleAs');
+    expect(wrapper.text()).not.toContain('同事');
     expect(wrapper.find(byTestId('eval360-emp-question-index')).text()).toBe(
       'page.eval360Emp.answer.questionIndex:{"current":1,"total":3}',
     );
@@ -201,18 +220,35 @@ describe('answer.vue 一题一页', () => {
     );
     expect(wrapper.find(byTestId('eval360-emp-submit')).exists()).toBe(false);
   });
-
-  it('角色名为空时前缀不残缺（兜底为「-」）', async () => {
-    const base = buildSet();
-    questionSet = buildSet({
-      evaluatees: base.evaluatees.map((e) => ({ ...e, roleName: '' })),
-    });
-    const wrapper = await mountAnswer();
-    expect(wrapper.text()).toContain(
-      'page.eval360Emp.answer.roleAs:{"role":"-"}',
-    );
-  });
 });
+
+// matrixColumns 构造两列评价项：均为「允许评语」，必填由参数决定。
+function matrixColumns(commentRequired: number) {
+  return [
+    {
+      allowComment: 1,
+      commentAllowCustom: 0,
+      commentPlaceholder: '优秀评语',
+      commentPresets: [],
+      commentRequired,
+      id: 1,
+      label: '优秀',
+      score: '5',
+      sort: 0,
+    },
+    {
+      allowComment: 1,
+      commentAllowCustom: 0,
+      commentPlaceholder: '良好评语',
+      commentPresets: [],
+      commentRequired: 0,
+      id: 2,
+      label: '良好',
+      score: '4',
+      sort: 1,
+    },
+  ];
+}
 
 describe('answer.vue 矩阵评语', () => {
   // 两列都允许评语：切换所选评价项时，上一列写的评语必须清空，
@@ -230,30 +266,7 @@ describe('answer.vue 矩阵评语', () => {
               id: 1,
               title: '矩阵题',
               type: 'matrix',
-              matrixColumns: [
-                {
-                  allowComment: 1,
-                  commentAllowCustom: 0,
-                  commentPlaceholder: '优秀评语',
-                  commentPresets: [],
-                  commentRequired: 0,
-                  id: 1,
-                  label: '优秀',
-                  score: '5',
-                  sort: 0,
-                },
-                {
-                  allowComment: 1,
-                  commentAllowCustom: 0,
-                  commentPlaceholder: '良好评语',
-                  commentPresets: [],
-                  commentRequired: 0,
-                  id: 2,
-                  label: '良好',
-                  score: '4',
-                  sort: 1,
-                },
-              ],
+              matrixColumns: matrixColumns(0),
             }),
           ],
           sort: 0,
@@ -321,9 +334,230 @@ describe('answer.vue 矩阵评语', () => {
     });
     wrapper.unmount();
   });
+  it('必填评语未填时不能进入下一题，填完即可继续；非必填列不受影响', async () => {
+    // 两题一页一题：矩阵题（第 1 题）选「优秀」且评语必填，后接一道文本题（第 3 题）。
+    questionSet = buildSet({
+      dimensions: [
+        {
+          id: 1,
+          name: '维度一',
+          questions: [
+            question({
+              id: 1,
+              title: '矩阵题',
+              type: 'matrix',
+              matrixColumns: matrixColumns(1),
+            }),
+            question({ id: 3, title: '后续题' }),
+          ],
+          sort: 0,
+        },
+      ],
+    });
+    const wrapper = await mountAnswer();
+    const nextBtn = () => wrapper.find(byTestId('eval360-emp-next'));
+    const currentTitle = () =>
+      wrapper.find(byTestId('eval360-emp-question')).text();
+    const clickCell = async (index: number) => {
+      await matrixCell(wrapper, index).find('input').trigger('change');
+      await flushPromises();
+    };
+    const comment = () =>
+      document.body.querySelector(
+        byTestId('eval360-emp-matrix-comment'),
+      ) as HTMLTextAreaElement;
+
+    // 未选题：矩阵题必答，本就禁用。
+    expect(nextBtn().attributes('disabled')).toBeDefined();
+
+    // 选「优秀」（评语必填）但评语空：仍视为未答完。
+    await clickCell(0);
+    expect(nextBtn().attributes('disabled')).toBeDefined();
+    await nextBtn().trigger('click');
+    expect(currentTitle()).toContain('矩阵题');
+
+    // 空白评语不算填。
+    await typeComment(comment(), '   ');
+    expect(nextBtn().attributes('disabled')).toBeDefined();
+
+    // 填上评语即可进入下一题。
+    await typeComment(comment(), '沟通清晰');
+    expect(nextBtn().attributes('disabled')).toBeUndefined();
+    await nextBtn().trigger('click');
+    expect(currentTitle()).toContain('后续题');
+
+    // 回到矩阵题改选「良好」（评语非必填）：评语被清空但不再拦翻页。
+    await wrapper.find(byTestId('eval360-emp-prev')).trigger('click');
+    await clickCell(1);
+    expect(nextBtn().attributes('disabled')).toBeUndefined();
+    wrapper.unmount();
+  });
+
+  it('必填评语漏填时提交仍被拦截，不调用接口（兜底）', async () => {
+    // 只有一道矩阵题（必答）：评语必填不参与 canSubmit，故提交按钮会照常出现；
+    // 这道兜底保证即便用户不靠翻页（或未来出现绕过翻页的路径）也不会漏评语提交。
+    questionSet = buildSet({
+      dimensions: [
+        {
+          id: 1,
+          name: '维度一',
+          questions: [
+            question({
+              id: 1,
+              title: '矩阵题',
+              type: 'matrix',
+              matrixColumns: matrixColumns(1),
+            }),
+          ],
+          sort: 0,
+        },
+      ],
+    });
+    const wrapper = await mountAnswer();
+    await matrixCell(wrapper, 0).find('input').trigger('change');
+    await flushPromises();
+
+    const submitBtn = wrapper.find(byTestId('eval360-emp-submit'));
+    expect(submitBtn.exists()).toBe(true);
+    await submitBtn.trigger('click');
+    await flushPromises();
+    expect(submit).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
 });
 
-// matrixCell 取第 index 个矩阵单元格（不存在即让用例失败，避免后续空引用）。
+describe('answer.vue 本地暂存', () => {
+  const key = 'linapro:eval360:answer-draft:10:7';
+  const currentTitle = (wrapper: VueWrapper) =>
+    wrapper.find(byTestId('eval360-emp-question')).text();
+  const textValue = (wrapper: VueWrapper) =>
+    (wrapper.find(byTestId('eval360-emp-text')).element as HTMLInputElement)
+      .value;
+
+  beforeEach(() => {
+    questionSet = buildSet();
+    submit.mockClear();
+  });
+
+  // 刷新 = 卸载（触发立即落盘）后重新挂载。
+  async function answerThenRefresh() {
+    const first = await mountAnswer();
+    await first.find(byTestId('eval360-emp-text')).setValue('第一题答案');
+    await first.find(byTestId('eval360-emp-next')).trigger('click');
+    await first.find(byTestId('eval360-emp-text')).setValue('选填答案');
+    first.unmount();
+    return mountAnswer();
+  }
+
+  it('刷新后恢复未提交答案与页码', async () => {
+    const wrapper = await answerThenRefresh();
+    expect(currentTitle(wrapper)).toContain('选填题');
+    expect(textValue(wrapper)).toBe('选填答案');
+    await wrapper.find(byTestId('eval360-emp-prev')).trigger('click');
+    expect(textValue(wrapper)).toBe('第一题答案');
+    wrapper.unmount();
+  });
+
+  it('页码不越过因过滤而失效的必答题', async () => {
+    const first = await mountAnswer();
+    await first.find(byTestId('eval360-emp-text')).setValue('第一题答案');
+    await first.find(byTestId('eval360-emp-next')).trigger('click');
+    await first.find(byTestId('eval360-emp-next')).trigger('click');
+    expect(currentTitle(first)).toContain('第三题');
+    first.unmount();
+
+    // 刷新前第一题被删除重建（id 变化）：暂存答案失效，应回到这道未答的必答题。
+    const rebuilt = buildSet();
+    questionSet = {
+      ...rebuilt,
+      dimensions: rebuilt.dimensions.map((d, i) =>
+        i === 0
+          ? {
+              ...d,
+              questions: d.questions.map((q) =>
+                q.id === 1 ? { ...q, id: 5 } : q,
+              ),
+            }
+          : d,
+      ),
+    };
+    const wrapper = await mountAnswer();
+    expect(currentTitle(wrapper)).toContain('第一题');
+    expect(textValue(wrapper)).toBe('');
+    wrapper.unmount();
+  });
+
+  it('暂存按员工隔离：换人登录看不到上一人的答案', async () => {
+    const first = await mountAnswer();
+    await first.find(byTestId('eval360-emp-text')).setValue('甲的答案');
+    first.unmount();
+    expect(localStorage.getItem(key)).not.toBeNull();
+
+    whoamiEmpId = 8;
+    const wrapper = await mountAnswer();
+    expect(textValue(wrapper)).toBe('');
+    wrapper.unmount();
+  });
+
+  it('取不到员工身份时不读写暂存', async () => {
+    whoamiEmpId = 0;
+    const first = await mountAnswer();
+    await first.find(byTestId('eval360-emp-text')).setValue('答案');
+    first.unmount();
+    const draftKeys = Object.keys(localStorage).filter((k) =>
+      k.startsWith('linapro:eval360:answer-draft:'),
+    );
+    expect(draftKeys).toEqual([]);
+  });
+
+  it('已提交的行不从暂存恢复，整页只读时清除暂存', async () => {
+    const first = await mountAnswer();
+    await first.find(byTestId('eval360-emp-text')).setValue('本地答案');
+    first.unmount();
+
+    questionSet = buildSet({
+      evaluatees: [
+        {
+          evaluateeName: '张三',
+          relationId: 100,
+          roleName: '同事',
+          submitted: true,
+        },
+      ],
+      submittedAnswers: [
+        {
+          optionId: 0,
+          questionId: 1,
+          relationId: 100,
+          textValue: '服务端答案',
+        },
+      ],
+    });
+    const wrapper = await mountAnswer();
+    expect(textValue(wrapper)).toBe('服务端答案');
+    expect(localStorage.getItem(key)).toBeNull();
+    wrapper.unmount();
+  });
+
+  it('提交成功后清除暂存', async () => {
+    const wrapper = await mountAnswer();
+    await wrapper.find(byTestId('eval360-emp-text')).setValue('第一题答案');
+    await wrapper.find(byTestId('eval360-emp-next')).trigger('click');
+    await wrapper.find(byTestId('eval360-emp-next')).trigger('click');
+    await wrapper.find(byTestId('eval360-emp-text')).setValue('第三题答案');
+    // 先落盘一次，确认提交前确有暂存。
+    window.dispatchEvent(new Event('pagehide'));
+    expect(localStorage.getItem(key)).not.toBeNull();
+
+    await wrapper.find(byTestId('eval360-emp-submit')).trigger('click');
+    await flushPromises();
+    expect(submit).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem(key)).toBeNull();
+    wrapper.unmount();
+    expect(localStorage.getItem(key)).toBeNull();
+  });
+});
+
 function matrixCell(wrapper: VueWrapper, index: number) {
   const el = wrapper.findAll(byTestId('eval360-emp-matrix-cell')).at(index);
   if (!el) throw new Error(`矩阵单元格 ${index} 不存在`);

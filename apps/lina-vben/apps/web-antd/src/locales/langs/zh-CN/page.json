@@ -160,7 +160,6 @@
     "answer": {
       "back": "返回我的评估",
       "evaluatee": "被评估人",
-      "roleAs": "作为{role}",
       "notFound": "问卷不存在或已不可见",
       "progress": "已完成 {done}/{total} 人",
       "commentColumn": "评语",

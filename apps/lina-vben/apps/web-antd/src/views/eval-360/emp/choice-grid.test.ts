@@ -236,6 +236,30 @@ describe('choice-grid.vue 矩阵评价项评语', () => {
     wrapper.unmount();
   });
 
+  // 必填评语漏填时评语图标标红（提示这与「下一题」禁用相关），非必填漏填保持灰色。
+  it('colors an empty required comment toggle red', () => {
+    const mountWith = (commentRequired: number) =>
+      mount(ChoiceGrid, {
+        global: { mocks: { $t: (key: string) => key } },
+        props: {
+          disabled: false,
+          question: commentMatrixQuestion({ commentRequired }),
+          rows,
+          value: { 1: { optionId: 1, text: '' } },
+        },
+      });
+    const toggle = (w: ReturnType<typeof mountWith>) =>
+      w.find('[data-testid="eval360-emp-matrix-comment-toggle"]');
+
+    const required = mountWith(1);
+    expect(toggle(required).classes()).toContain('text-red-500');
+    required.unmount();
+
+    const optional = mountWith(0);
+    expect(toggle(optional).classes()).toContain('text-gray-400');
+    optional.unmount();
+  });
+
   // 必填评语的列头带星标，仅在「允许评语 + 必填」同时成立时出现。
   it('marks required comments in the header', () => {
     const optional = mount(ChoiceGrid, {

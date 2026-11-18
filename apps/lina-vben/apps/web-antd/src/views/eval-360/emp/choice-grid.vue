@@ -121,6 +121,14 @@ function commentPlaceholder(col: GridColumn): string {
   );
 }
 
+// commentToggleClass 评语图标配色：已填 → 主题色；必填但漏填 → 红色（提示这与「下一题」禁用有关）；
+// 允许评语但非必填且未填 → 灰色。
+function commentToggleClass(row: EvaluateeRow, col: GridColumn): string {
+  const filled = cellComment(row).trim().length > 0;
+  if (filled) return 'text-primary';
+  return col.commentRequired ? 'text-red-500' : 'text-gray-400';
+}
+
 // ---- 矩阵评语浮层 ----
 // 当前打开的浮层（受控，同一时刻最多一个）：键为「行 relationId : 列 id」。
 const openCommentKey = ref<null | string>(null);
@@ -175,7 +183,7 @@ function displayScore(score: string): string {
           <th v-for="c in columns" :key="c.id">
             <div class="flex-center gap-1">
               <span>{{ c.label }}</span>
-              <!-- 必填评语的列在表头以星标提示（校验发生在提交时）。 -->
+              <!-- 必填评语的列在表头以星标提示（漏填时「下一题」禁用，提交时再兜底拦截）。 -->
               <span
                 v-if="isMatrix && c.allowText && c.commentRequired"
                 class="text-red-500"
@@ -209,13 +217,6 @@ function displayScore(score: string): string {
           <td class="eval360-grid-name">
             <div class="flex flex-wrap items-center gap-1">
               <span>{{ row.evaluateeName }}</span>
-              <span class="text-xs text-gray-400">
-                {{
-                  $t('page.eval360Emp.answer.roleAs', {
-                    role: row.roleName || '-',
-                  })
-                }}
-              </span>
               <ATag v-if="row.submitted" color="success" class="mr-0!">
                 {{ $t('page.eval360Emp.answer.submittedTag') }}
               </ATag>
@@ -251,9 +252,7 @@ function displayScore(score: string): string {
                 <button
                   type="button"
                   class="inline-flex cursor-pointer items-center border-0 bg-transparent p-0"
-                  :class="
-                    cellComment(row).trim() ? 'text-primary' : 'text-gray-400'
-                  "
+                  :class="commentToggleClass(row, c)"
                   :data-relation-id="row.relationId"
                   :data-oid="c.id"
                   data-testid="eval360-emp-matrix-comment-toggle"

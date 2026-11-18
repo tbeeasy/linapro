@@ -206,7 +206,7 @@ function open(c: AssessmentCard) {
             {{ c.projectName }} · {{ c.questionnaireTitle }}
           </span>
           <div
-            class="text-sm text-gray-600"
+            class="text-sm text-blue-600"
             data-testid="eval360-emp-assessment-evaluatees"
           >
             {{ c.evaluateeNames }}

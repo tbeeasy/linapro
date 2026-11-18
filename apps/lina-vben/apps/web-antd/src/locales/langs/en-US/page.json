@@ -160,7 +160,6 @@
     "answer": {
       "back": "Back to My Assessments",
       "evaluatee": "Evaluatee",
-      "roleAs": "as {role}",
       "notFound": "Questionnaire not found or not visible",
       "progress": "Completed {done}/{total}",
       "commentColumn": "Comment",

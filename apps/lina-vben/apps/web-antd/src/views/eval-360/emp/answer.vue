@@ -7,7 +7,7 @@ import type {
   SubmitItemDTO,
 } from '#/api/eval-360/emp-model';
 
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import {
@@ -21,9 +21,22 @@ import {
   message,
 } from 'ant-design-vue';
 
-import { evalEmpQuestions, evalEmpSubmit } from '#/api/eval-360/emp';
+import {
+  evalEmpQuestions,
+  evalEmpSubmit,
+  evalEmpWhoami,
+} from '#/api/eval-360/emp';
 import { $t } from '#/locales';
 
+import {
+  clearDraft,
+  draftKey,
+  loadDraft,
+  pickPendingCells,
+  pruneExpiredDrafts,
+  restoreDraftCells,
+  saveDraft,
+} from './answer-draft';
 import ChoiceGrid from './choice-grid.vue';
 
 // answer.vue 员工作答页（按问卷批量作答）：每题同时作答该评价者名下全部被评估人。
@@ -33,6 +46,8 @@ import ChoiceGrid from './choice-grid.vue';
 // 已提交的被评估人行只读并回显答案；全部已提交或项目已截止 → 整页只读、隐藏提交按钮。
 // 提交范围 = 页面加载时所有未提交的人（打开页面后管理员新增的人不在本次，留在待办里）。
 // 计时（design D7）：加载完成起算，提交时算 durationSeconds 上传（整场一次），不向答题人展示；组件未 keep-alive，每次进入即重置。
+// 本地暂存（answer-draft.ts）：未提交行的答案与页码按「问卷 + empId」暂存到 localStorage，刷新后经 live 结构过滤再恢复；
+// 拿不到 empId 不读写、整页只读时清除、提交成功清除；计时不随暂存恢复（刷新即重新计时）。
 // 本地无飞书应用时无法走通登录；可临时手贴后端 dev 签发的员工 JWT 到 localStorage['linapro:emp-auth-token']
 // 后直访本页对运行中的后端验证渲染与提交。
 
@@ -134,7 +149,8 @@ function matrixColumn(q: QuestionNode, rid: number) {
 }
 
 // commentRequiredMissing 该行是否漏填了「允许评语 + 必填」评价项的评语。
-// 只在提交前拦截：作答过程中允许先选列后补评语、来回切换。
+// 与题目必填同口径计入「该题是否答完」：漏填即不能进入下一题。
+// 作答过程中允许先选列后补评语、来回切换（切换列会清空评语，故只在当前所选列上判）。
 function commentRequiredMissing(q: QuestionNode, rid: number): boolean {
   const col = matrixColumn(q, rid);
   if (!col || col.allowComment !== 1 || col.commentRequired !== 1) return false;
@@ -153,8 +169,8 @@ const missingCount = computed(() => {
 });
 
 // 评语必填与题目必填相互独立：题必填决定「选不选」，评价项必填决定「填不填评语」。
-// 评语必填只在点击提交时拦截（见 handleSubmit），不参与 canSubmit——
-// 否则按钮会直接消失，用户不知道缺在哪，且作答过程中来回切换列属于正常操作。
+// 评语漏填同样拦住「下一题」（见 isQuestionDone），但不参与 canSubmit——
+// 否则提交按钮会直接消失，用户不知道缺在哪个人；改由 handleSubmit 拦截并翻到该题提示。
 const missingCommentCount = computed(() => {
   let n = 0;
   for (const q of allQuestions.value) {
@@ -206,14 +222,21 @@ function goToPage(index: number) {
   rootRef.value?.scrollIntoView?.({ block: 'start' });
 }
 
+// 题目是否答完：必答题要求每行既已作答、又没漏填必填评语。
+// 漏填评语与此前「必答未选」表现一致——「下一题」禁用，用户直接看到缺在哪里。
 function isQuestionDone(q: QuestionNode): boolean {
   if (q.required !== 1) return true;
   return rowsFor(q).every(
-    (row) => row.submitted || isCellAnswered(q, row.relationId),
+    (row) =>
+      row.submitted ||
+      (isCellAnswered(q, row.relationId) &&
+        !commentRequiredMissing(q, row.relationId)),
   );
 }
 
-// 当前题为必答且未答完时不能进入下一题；整页只读时仅查看，不拦截。
+// 当前题未答完时不能进入下一题；整页只读时仅查看，不拦截。
+// 注意：评语必填与题目必填独立——题目必答决定「选不选」，评价项必填决定「填不填评语」。
+// 二者都拦「下一题」，但只有题目必填参与 canSubmit，评语必填由 handleSubmit 拦截并定位到人。
 const canGoNext = computed(
   () =>
     readonly.value ||
@@ -237,11 +260,93 @@ function selectCell(rid: number, optionId: number) {
   setCell(q.id, rid, { optionId, text: '' });
 }
 
+// ---- 本地暂存 ----
+// 当前问卷 + 员工的暂存 key；为空表示不读写（拿不到 empId、整页只读或已提交）。
+let draftStorageKey = '';
+let draftTimer: ReturnType<typeof setTimeout> | undefined;
+
+// 员工身份取不到时返回 0，调用方据此跳过暂存，不能退化为只按问卷隔离。
+async function resolveEmpId(): Promise<number> {
+  try {
+    const res = await evalEmpWhoami();
+    return Number(res.empId) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+// 恢复页码：取「暂存页码」与「第一道未答完的题」中更靠前者，避免越过因过滤而失效的必答题。
+function restoredPageIndex(saved: number): number {
+  const last = Math.max(pages.value.length - 1, 0);
+  const savedIndex =
+    Number.isInteger(saved) && saved >= 0 ? Math.min(saved, last) : 0;
+  const firstUndone = pages.value.findIndex(
+    (page) => !isQuestionDone(page.question),
+  );
+  return firstUndone === -1 ? savedIndex : Math.min(savedIndex, firstUndone);
+}
+
+function setupDraft(empId: number) {
+  pruneExpiredDrafts();
+  draftStorageKey = '';
+  if (!empId) return;
+  const key = draftKey(questionnaireId.value, empId);
+  if (readonly.value) {
+    clearDraft(key);
+    return;
+  }
+  draftStorageKey = key;
+  const draft = loadDraft(key);
+  if (!draft) return;
+  const restored = restoreDraftCells(
+    draft.answers,
+    allQuestions.value,
+    pendingIds.value,
+  );
+  // 已提交行（服务端回显）与未提交行（暂存）按行不重叠，逐题合并。
+  for (const [qid, row] of Object.entries(restored)) {
+    answers.value[Number(qid)] = { ...answers.value[Number(qid)], ...row };
+  }
+  pageIndex.value = restoredPageIndex(draft.pageIndex);
+}
+
+function flushDraft() {
+  clearTimeout(draftTimer);
+  draftTimer = undefined;
+  if (!draftStorageKey) return;
+  saveDraft(
+    draftStorageKey,
+    pickPendingCells(answers.value, pendingIds.value),
+    pageIndex.value,
+  );
+}
+
+function dropDraft() {
+  clearTimeout(draftTimer);
+  draftTimer = undefined;
+  if (draftStorageKey) clearDraft(draftStorageKey);
+  draftStorageKey = '';
+}
+
+// 文本题逐字输入，防抖写入；页面隐藏/卸载时立即落盘，避免刷新丢掉最后几个字。
+watch(
+  [answers, pageIndex],
+  () => {
+    if (!draftStorageKey) return;
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(flushDraft, 300);
+  },
+  { deep: true },
+);
+
 // ---- 加载 ----
 async function load() {
   loading.value = true;
   try {
-    const res = await evalEmpQuestions(questionnaireId.value);
+    const [res, empId] = await Promise.all([
+      evalEmpQuestions(questionnaireId.value),
+      resolveEmpId(),
+    ]);
     questionSet.value = res.set;
     // 已提交关系的答案回填，供只读回显。
     const filled: Record<number, Record<number, CellAnswer>> = {};
@@ -253,6 +358,7 @@ async function load() {
     }
     answers.value = filled;
     pageIndex.value = 0;
+    setupDraft(empId);
     startedAt = Date.now();
   } catch {
     questionSet.value = null;
@@ -261,7 +367,15 @@ async function load() {
   }
 }
 
-onMounted(load);
+onMounted(() => {
+  window.addEventListener('pagehide', flushDraft);
+  void load();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('pagehide', flushDraft);
+  flushDraft();
+});
 
 // ---- 提交 ----
 // 单选的选项级评语：仅当所选选项允许评语时上送；
@@ -321,6 +435,8 @@ async function handleSubmit() {
       durationSeconds,
       items: buildItems(),
     });
+    // 提交成功（含幂等结果）即清除暂存，须在离开页面（卸载时会 flush）之前。
+    dropDraft();
     void router.replace({
       path: '/eval-360/emp/result',
       query: {
@@ -463,15 +579,8 @@ function back() {
               >
                 <div class="w-28 shrink-0 pt-1 text-sm">
                   <div>{{ row.evaluateeName }}</div>
-                  <div class="text-xs text-gray-400">
-                    {{
-                      $t('page.eval360Emp.answer.roleAs', {
-                        role: row.roleName || '-',
-                      })
-                    }}
-                    <span v-if="row.submitted" class="text-green-600">
-                      · {{ $t('page.eval360Emp.answer.submittedTag') }}
-                    </span>
+                  <div v-if="row.submitted" class="text-xs text-green-600">
+                    {{ $t('page.eval360Emp.answer.submittedTag') }}
                   </div>
                 </div>
                 <AInput
@@ -506,7 +615,7 @@ function back() {
           </div>
         </ACard>
 
-        <!-- 翻页与提交：必答题未答完禁用「下一题」；提交按钮仅在必填全部答完时出现（整页只读时不出现） -->
+        <!-- 翻页与提交：必答题未答完（含必填评语未填）禁用「下一题」；提交按钮仅在必填全部答完时出现（整页只读时不出现） -->
         <div class="flex items-center justify-between gap-2">
           <AButton
             data-testid="eval360-emp-prev"
