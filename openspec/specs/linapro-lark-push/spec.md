@@ -166,8 +166,9 @@ TBD - created by archiving change linapro-lark-push. Update Purpose after archiv
 插件初始化时绑定实现；消费方每次调用 SHALL 懒取当前绑定，未绑定时 SHALL 返回明确的
 「能力未就绪」错误，MUST NOT 静默成功或丢弃消息。
 
-门面请求 SHALL 支持三种收件人写法：工号（由系统解析各企业 `user_id`）、已持有的
-`user_id`，或群聊 `chat_id`（FB-6，见「群聊投递」）。门面 SHALL 提供文本（`SendText`）、交互卡片
+门面请求 SHALL 支持四种收件人写法：工号（由系统解析各企业 `user_id`）、已持有的
+`user_id`、Moka 员工姓名（由系统先解析为工号再扇出，见「按员工姓名寻址个人收件人」），或群聊
+`chat_id`（FB-6，见「群聊投递」）。门面 SHALL 提供文本（`SendText`）、交互卡片
 （`SendCard`）与文件（`SendFile`，FB-7）三种投递。请求 SHALL 携带必填的**分组**（`Group`，取调用方插件 ID），系统只用该分组的推送应用
 投递；请求 SHALL 携带调用方标识（业务来源）用于日志对账，并可选携带业务单号。业务来源只用于
 日志，MUST NOT 参与选路。
@@ -186,6 +187,11 @@ TBD - created by archiving change linapro-lark-push. Update Purpose after archiv
 
 - **WHEN** 已启用的业务插件通过门面以工号请求发送一条文本
 - **THEN** 系统完成解析与投递，返回逐收件人 × 逐推送应用的结果
+
+#### Scenario: 其它插件按姓名发送文本
+
+- **WHEN** 已启用的业务插件通过门面以员工姓名请求发送一条文本
+- **THEN** 系统先解析为工号再按企业扇出，返回逐收件人 × 逐推送应用的结果
 
 #### Scenario: 收件人为空的请求
 
@@ -279,9 +285,10 @@ HTTP 状态码 SHALL 只区分三类，其余一律 **200**、由 `code` / `erro
 投递结果放在 `data` 中，SHALL 只返回结论与失败项（FB-11）：全部成功时 `code` 为 0、`data` 为
 `{"all_succeeded": true}`；存在失败时返回 HTTP 200、`code` 非 0、`errorCode` 为
 `LINAPRO_LARK_PUSH_SEND_PARTIAL_FAILED`（FB-12，原为 HTTP 502），`data.failed` 逐项给出失败收件人（按请求的寻址
-方式给 `employee_no` / `user_id` / `chat_id` 之一）与 `lark_code`、`lark_msg`、`lark_req_id`，以便调用方只重试
+方式给 `employee_no` / `user_id` / `name` / `chat_id` 之一）与 `lark_code`、`lark_msg`、`lark_req_id`，以便调用方只重试
 失败的收件人；部分失败 MUST NOT 以 `code` 为 0 返回，避免调用方只判 `code` 时把失败当成功。非飞书侧原因的失败项
-`lark_code` 为 0、`lark_msg` 为失败状态（`no_identity` / `user_id_missing` / `collision` / `failed`；工号写错或
+`lark_code` 为 0、`lark_msg` 为失败状态（`no_identity` / `user_id_missing` / `collision` / `name_not_found` /
+`name_duplicate` / `failed`；工号写错或
 不存在不单列状态，归入 `no_identity`，FB-15）。推送应用、`message_id`、错误详情等逐条明细
 MUST NOT 出现在响应中，SHALL 记入服务端日志。某人只在部分企业无身份（`no_identity`）是按企业扇出的正常结果，
 MUST NOT 计为失败；只有其在所有企业都无身份时才作为一个失败项返回。
@@ -357,6 +364,16 @@ MUST NOT 计为失败；只有其在所有企业都无身份时才作为一个�
 
 - **WHEN** 请求体包含 `group` 字段
 - **THEN** 接口按未知字段以 `LINAPRO_LARK_PUSH_INVALID_PARAM` 拒绝请求（HTTP 200），不发送任何消息
+
+#### Scenario: 按姓名推送
+
+- **WHEN** 调用方在 `recipients` 中只给 `{"name": "张三"}` 并调用 `message/text`
+- **THEN** 系统把姓名解析为工号后按企业扇出投递，响应只含 `all_succeeded` 或失败项
+
+#### Scenario: 姓名寻址的失败项回显姓名
+
+- **WHEN** 请求中一名按姓名寻址的收件人不存在，另一名按工号寻址的收件人送达
+- **THEN** `data.failed` 中该项只带 `name`（不带解析出的工号）、`lark_code` 为 0、`lark_msg` 为 `name_not_found`
 
 #### Scenario: 部分收件人失败
 
@@ -535,7 +552,7 @@ SHALL 静默不告警且不影响推送能力，启动时记录一次提示。
 - 分组内有多个推送应用时，`push_app_id` 必填；
 - `push_app_id` MUST 属于请求分组，否则视为参数错误。
 
-上述参数错误 SHALL 在发起任何飞书请求前整体拒绝。群聊收件人 MUST NOT 同时携带工号或 `user_id`。
+上述参数错误 SHALL 在发起任何飞书请求前整体拒绝。群聊收件人 MUST NOT 同时携带工号、`user_id` 或姓名。
 机器人不在群内等飞书侧拒绝 SHALL 只把该条明细记为 `failed`。个人收件人与群聊收件人 SHALL 可以在同一
 请求中混合，但至少要有一个。明细 SHALL 带 `chat_id`。
 
@@ -636,4 +653,77 @@ SHALL 静默不告警且不影响推送能力，启动时记录一次提示。
 
 - **WHEN** 调用方以超过 31 MB 的请求体调用 `message/file`
 - **THEN** 系统返回 HTTP 413 与 `LINAPRO_LARK_PUSH_BODY_TOO_LARGE`，响应体为统一结构，不触发任何上传或投递
+
+### Requirement: 按员工姓名寻址个人收件人
+
+推送 SHALL 支持以 Moka 员工姓名（`employee.name`）作为个人收件人的寻址方式，与工号（`employee_no`）、
+企业级 `user_id` 三选一，对进程内门面（`SendText` / `SendCard` / `SendFile`）与对外 HTTP 文本、文件接口
+一致生效。同一收件人元素给出多于一种寻址方式时 SHALL 以 `LINAPRO_LARK_PUSH_INVALID_PARAM` 拒绝（HTTP 200），
+MUST NOT 静默取其一——姓名与工号指向不同的人时会发错人。
+
+姓名 SHALL 去掉首尾空白后与员工姓名**原值精确匹配**，不做大小写、全半角或拼音归一，也 MUST NOT 使用
+飞书通讯录昵称。解析 SHALL 跨全部租户进行，只认**在职**（`status` 为在职）员工；同一自然人在多个租户
+各有一行（工号相同）时 SHALL 视为同一人、只发一份。
+
+姓名解析 SHALL 对整批收件人做**一次**批量查询并在内存判定，MUST NOT 逐收件人查库。解析发生在跨企业
+扇出之前：解析成功后以该员工的工号替换原收件人，其后的企业扇出、`user_id` 缺失判定与工号碰撞判定
+SHALL 完全沿用既有的工号寻址路径。
+
+解析失败 SHALL 只把该收件人记为失败项，不阻断同批其余收件人，失败状态为：
+
+| 情形 | `lark_msg` |
+|---|---|
+| 无任何在职员工使用该姓名（含员工改名后旧姓名、Moka 未同步到该人） | `name_not_found` |
+| 去重后有两名及以上在职员工使用该姓名 | `name_duplicate` |
+| 匹配到一名在职员工但其工号为空，无法寻址 | `failed` |
+
+上述失败项的 `lark_code` SHALL 为 0。系统 MUST NOT 在同名多人时选取其中一人投递；该分支是数据异常的
+防御性兜底（业务约定 HR 在重名时于姓名后标记部门，正常数据不会命中）。
+
+姓名解析依赖员工能力（`empcap`），未绑定时请求 SHALL 以 `LINAPRO_LARK_PUSH_EMPCAP_UNBOUND`（HTTP 503）
+失败关闭，MUST NOT 降级为静默跳过或按其它方式猜测收件人。
+
+失败项 SHALL 按**调用方的寻址方式**回显：按姓名寻址时给 `name`，MUST NOT 回显解析出的工号。同一请求中
+既有显式工号、又有解析到同一人的姓名时，该人 SHALL 只投递一次。
+
+#### Scenario: 按姓名投递并自动扇出
+
+- **WHEN** 调用方以 `{"name": "张三"}` 请求发送文本，张三在两个企业均有在职身份且 `lark_user_id` 非空
+- **THEN** 系统以两个推送应用各投递一条，结果 `all_succeeded` 为 true，接收方按企业收到各自机器人的消息
+
+#### Scenario: 姓名不存在
+
+- **WHEN** 请求的姓名在员工目录中没有任何在职员工
+- **THEN** 接口返回 `LINAPRO_LARK_PUSH_SEND_PARTIAL_FAILED`，`data.failed` 中该项带 `name`、`lark_code` 为 0、
+  `lark_msg` 为 `name_not_found`，同批其它收件人照常投递
+
+#### Scenario: 同名多人被拒绝投递
+
+- **WHEN** 去重后有两名在职员工使用同一姓名
+- **THEN** 该收件人记为 `name_duplicate` 失败项且不发送任何消息，MUST NOT 只发给其中一人
+
+#### Scenario: 离职员工不参与匹配
+
+- **WHEN** 某姓名同时对应一名在职员工与一名离职员工
+- **THEN** 按在职的那名员工投递，不判为重名
+
+#### Scenario: 同时给出姓名与工号
+
+- **WHEN** 同一收件人元素同时给出 `name` 与 `employee_no`
+- **THEN** 接口以 `LINAPRO_LARK_PUSH_INVALID_PARAM` 拒绝（HTTP 200），不发送任何消息
+
+#### Scenario: 姓名与用户标识混用同一请求
+
+- **WHEN** 请求中一项显式给 `employee_no` 为 E1001，另一项给姓名「张三」且张三的工号正是 E1001
+- **THEN** 该人只收到一条消息，不重复投递
+
+#### Scenario: 姓名解析不产生逐人查库
+
+- **WHEN** 一次请求按姓名给出 100 个收件人
+- **THEN** 系统只发起一次员工批量查询，不随收件人数增加查询次数
+
+#### Scenario: 员工能力未绑定
+
+- **WHEN** `linapro-employee-core` 未启用，调用方按姓名推送
+- **THEN** 接口返回 HTTP 503 与 `LINAPRO_LARK_PUSH_EMPCAP_UNBOUND`，不发送任何消息
 
