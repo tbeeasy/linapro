@@ -1,0 +1,167 @@
+## MODIFIED Requirements
+
+### Requirement: 参数项必须声明封闭的值类型集合
+
+系统 SHALL 为每条 `sys_config` 记录持久化 `value_type` 字段，取值必须属于封闭集合：`text`、`textarea`、`number`、`boolean`、`select`、`radio`、`multi_select`、`richtext`、`json`。缺失、空串或未知类型在管理面投影时 MUST 归一为 `text`。业务权威值仍存储于字符串字段 `value`，运行时读取路径 MUST 继续只依赖该字符串值。
+
+#### Scenario: 新建参数默认类型为 text
+
+- **WHEN** 管理员创建参数且未指定 `valueType`
+- **THEN** 系统将 `value_type` 存为 `text`
+- **AND** 后续详情返回 `valueType` 为 `text`
+
+#### Scenario: 非法 valueType 被拒绝
+
+- **WHEN** 调用方创建或更新参数且 `valueType` 不在封闭集合中
+- **THEN** 系统拒绝写入并返回结构化校验错误
+- **AND** 数据库记录不被修改
+
+#### Scenario: 运行时读取不依赖 valueType
+
+- **WHEN** 宿主通过 `GetRaw` 或 runtime snapshot 读取某配置键
+- **THEN** 返回值仅基于有效字符串 `value`
+- **AND** 不因 `value_type` 缺失或变更而改变读取优先级
+
+#### Scenario: 创建 json 类型参数
+
+- **WHEN** 管理员创建参数并指定 `valueType=json`，`value` 为合法 JSON 文本
+- **THEN** 系统将 `value_type` 存为 `json`
+- **AND** 详情返回 `valueType` 为 `json`，`value` 与提交的原文一致
+
+### Requirement: 写路径必须按类型校验参数值
+
+系统在创建、更新与导入参数时 SHALL 按 `valueType` 与 options 校验 `value`：
+
+- `boolean`：仅允许 `true` 或 `false`
+- `number`：必须可解析为十进制数字
+- `select` / `radio`：必须等于某一 option 的 `value`
+- `multi_select`：按英文分号 `;` 拆分后每一段都必须属于 options 的 `value` 集合（允许空串表示未选）
+- `json`：必须是非空的合法 JSON 文本（对象、数组或标量均可），不约束结构；系统 MUST 在持久化前删除字符串之外的空白（紧凑化），MUST NOT 改变键顺序、数字字面量或任何字符串内容
+- `text` / `textarea` / `richtext`：不额外限制字符形态（仍受托管键既有校验约束）
+
+托管运行时参数的既有格式校验（如 duration、上传上限）MUST 与类型校验叠加生效。
+
+#### Scenario: 布尔参数拒绝非 true/false
+
+- **WHEN** 管理员将 `valueType=boolean` 的参数值更新为 `yes`
+- **THEN** 系统拒绝更新并返回校验错误
+- **AND** 原值保持不变
+
+#### Scenario: 下拉参数仅允许选项内的值
+
+- **WHEN** 参数 `valueType=select` 且 options 仅包含 `panel-left` 与 `panel-right`
+- **AND** 管理员提交 value=`panel-center`
+- **THEN** 系统拒绝更新
+
+#### Scenario: 多选参数以分号序列化
+
+- **WHEN** 管理员保存 `valueType=multi_select` 且选中 option 值 `a` 与 `b`
+- **THEN** 持久化的 `value` 为 `a;b`（顺序以实现定义为准，校验时顺序不敏感）
+- **AND** 详情回显可供前端还原为多选数组
+
+#### Scenario: json 参数拒绝非法 JSON
+
+- **WHEN** 调用方创建、更新或导入 `valueType=json` 的参数，`value` 为 `{"a":1,}`
+- **THEN** 系统拒绝写入并返回 `SYSCONFIG_TYPED_VALUE_INVALID` 校验错误
+- **AND** 数据库记录不被修改
+
+#### Scenario: json 参数拒绝空值
+
+- **WHEN** 调用方提交 `valueType=json` 且 `value` 为空串或仅含空白
+- **THEN** 系统拒绝写入并返回校验错误
+
+#### Scenario: json 参数入库时紧凑化
+
+- **WHEN** 管理员提交 `valueType=json`，`value` 为带缩进和换行的合法 JSON 对象
+- **THEN** 持久化的 `value` 是不含多余空白的紧凑文本
+- **AND** 键顺序、数字字面量（含超过 15 位有效数字的大整数）和字符串内部空白保持不变
+- **AND** 合法的 JSON 数组或标量（如 `[1,2]`、`"abc"`、`42`）同样可以保存
+
+#### Scenario: 仅排版不同的重复提交不产生变更
+
+- **WHEN** 管理员只调整缩进或换行后再次提交同一份 JSON
+- **THEN** 持久化的 `value` 与调整前完全一致
+- **AND** 系统不因排版差异刷新运行时参数快照
+
+### Requirement: 管理面必须按类型渲染编辑组件
+
+参数设置新增与编辑界面 SHALL 根据 `valueType` 渲染对应输入组件，而不是对所有参数统一使用自由文本域：
+
+| valueType | 组件行为 |
+|-----------|----------|
+| text | 单行输入 |
+| textarea | 多行文本 |
+| number | 数字输入 |
+| boolean | 开关或等价二值选择 |
+| select | 下拉，选项来自 options |
+| radio | 单选组，选项来自 options |
+| multi_select | 多选，选项来自 options |
+| richtext | 宿主富文本编辑器（Tiptap 或等价） |
+| json | 宿主 JSON 代码编辑器：行号、语法高亮、括号匹配、折叠、搜索、实时语法错误标注、格式化，跟随系统暗色主题 |
+
+新增流程 MUST 允许选择 `valueType`；当类型为 `select`/`radio`/`multi_select` 时 MUST 提供 options 编辑能力。`json` 类型的值组件 MUST 在提交前校验 JSON 合法性，非法时阻止提交并在表单项下提示。
+
+管理面 MUST 按 `valueType` 应用可扩展的弹窗密度策略（而非写死单次高度常量）：
+
+- **compact**（默认，短字段类型）：保持默认中等弹窗宽度，可不提供全屏入口。
+- **spacious**（`richtext`、`json`，以及长文 `textarea`）：弹窗加宽至约 720–960px 量级且不超过视口、提供全屏入口；`richtext` 与 `json` 编辑区高度 MUST 使用视口相对尺寸（如 `clamp`/`vh`），编辑区内滚动，避免固定过矮的像素高度。
+
+类型切换（新增时选择类型）与编辑加载 MUST 同步刷新弹窗 chrome 与值组件布局。
+
+#### Scenario: 编辑下拉型内置参数通过选择赋值
+
+- **WHEN** 管理员编辑 `valueType=select` 且已配置 options 的参数
+- **THEN** 值输入区域展示下拉组件且选项来自 options
+- **AND** 管理员可通过选择完成赋值而无需从备注复制字符串
+
+#### Scenario: 编辑布尔参数使用开关组件
+
+- **WHEN** 管理员编辑 `valueType=boolean` 的参数
+- **THEN** 值输入区域展示开关或等价二值组件
+- **AND** 提交值为 `true` 或 `false` 字符串
+
+#### Scenario: 富文本参数使用宽弹窗与可全屏编辑区
+
+- **WHEN** 管理员新增或编辑 `valueType=richtext` 的参数
+- **THEN** 编辑弹窗宽度明显大于默认短表单弹窗（约 520px）
+- **AND** 弹窗提供全屏入口
+- **AND** 富文本编辑区最小高度不低于 360px 量级（或等价视口相对高度）
+- **AND** 编辑区在内容变长时内部滚动而不是把弹窗压成不可用的窄条
+
+#### Scenario: 从富文本切回短类型恢复紧凑弹窗
+
+- **WHEN** 管理员在新增流程中将 `valueType` 从 `richtext` 改为 `text`（或其它 compact 类型）
+- **THEN** 弹窗恢复默认紧凑宽度策略
+- **AND** 全屏入口按 compact 策略隐藏或关闭
+
+#### Scenario: json 参数使用代码编辑器
+
+- **WHEN** 管理员新增或编辑 `valueType=json` 的参数
+- **THEN** 值输入区域展示带行号与语法高亮的 JSON 代码编辑器
+- **AND** 弹窗按 spacious 档加宽并提供全屏入口
+- **AND** 编辑区最小高度不低于 360px 量级（或等价视口相对高度），内容变长时在编辑区内部滚动
+
+#### Scenario: json 编辑器标注语法错误并阻止提交
+
+- **WHEN** 管理员在 JSON 编辑器中输入非法 JSON（如缺少右括号）
+- **THEN** 编辑器在出错位置标注错误
+- **AND** 点击确定时表单阻止提交并在值字段下提示 JSON 格式不正确
+- **AND** 不向服务端发出写入请求
+
+#### Scenario: json 编辑器格式化内容
+
+- **WHEN** 管理员在内容为合法 JSON 时点击「格式化」
+- **THEN** 编辑器内容被重排为两空格缩进的 JSON
+- **AND** 内容为非法 JSON 时格式化不改动内容，并提示无法格式化
+
+#### Scenario: 打开编辑器时格式化展示
+
+- **WHEN** 管理员打开一个 `valueType=json` 的参数，存储值是紧凑文本
+- **THEN** 编辑器以两空格缩进展示该 JSON
+- **AND** 格式化只发生在打开这一刻，管理员后续输入不会被自动改写
+
+#### Scenario: json 编辑器组件按需加载
+
+- **WHEN** 管理员打开参数设置列表或编辑非 `json` 类型参数
+- **THEN** 浏览器不加载 JSON 编辑器所在的代码分块
+- **AND** 首次打开 `json` 类型参数时才加载该分块
