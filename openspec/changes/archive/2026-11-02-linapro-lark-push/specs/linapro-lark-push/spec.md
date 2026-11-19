@@ -2,11 +2,10 @@
 
 ### Requirement: 按调用方分组的推送应用配置
 
-系统 SHALL 从本插件私有配置键 `plugin.linapro-lark-push.push_groups` 读取推送应用分组（FB-2）。
+系统 SHALL 从本插件私有配置键 `plugin.linapro-lark-push.push_groups` 读取推送应用分组。
 `push_groups` 是以**分组名**为键的映射，分组名 SHALL 为调用方插件 ID（如 `linapro-eval-360`、
 `linapro-attend-poc`）或对外 HTTP 签名凭据绑定的分组名；每个分组的值是推送应用数组，元素含
-`app_id`、`secret_key`、`name`、`identity_app_id`。系统 MUST NOT 读取已废弃的
-`plugin.linapro-lark-push.push_apps`，也不做旧键兼容。
+`app_id`、`secret_key`、`name`、`identity_app_id`。该键是本插件唯一的推送配置来源。
 
 `identity_app_id` 的语义为「该推送应用投递时使用的 `user_id` 取自哪个企业」，其取值 SHALL
 对应 `linapro-employee-core` 配置中某个身份应用的 `app_id`。
@@ -102,7 +101,7 @@
 #### Scenario: 工号在系统中不存在
 
 - **WHEN** 工号未匹配到任何员工记录
-- **THEN** 该收件人状态为「未找到」，其余收件人照常发送
+- **THEN** 该收件人状态为 `no_identity`，其余收件人照常发送
 
 ### Requirement: 身份应用与推送应用的凭据隔离
 
@@ -132,7 +131,7 @@
 
 情形 2 与 3 的收件人 SHALL 被跳过并计入结果，MUST NOT 中断同批其余收件人的发送。
 
-三态 MUST 按收件人本人判定（FB-14）：只有本人在该企业有 own 行且 `lark_user_id` 为空时才判为
+三态 MUST 按收件人本人判定：只有本人在该企业有 own 行且 `lark_user_id` 为空时才判为
 情形 2；本人在该企业没有 own 行时 SHALL 判为情形 3，与该企业其他员工的 `lark_user_id` 是否为空无关。
 
 #### Scenario: 身份应用缺 user_id 权限
@@ -164,8 +163,8 @@
 「能力未就绪」错误，MUST NOT 静默成功或丢弃消息。
 
 门面请求 SHALL 支持三种收件人写法：工号（由系统解析各企业 `user_id`）、已持有的
-`user_id`，或群聊 `chat_id`（FB-6，见「群聊投递」）。门面 SHALL 提供文本（`SendText`）、交互卡片
-（`SendCard`）与文件（`SendFile`，FB-7）三种投递。请求 SHALL 携带必填的**分组**（`Group`，取调用方插件 ID），系统只用该分组的推送应用
+`user_id`，或群聊 `chat_id`（见「群聊投递」）。门面 SHALL 提供文本（`SendText`）、交互卡片
+（`SendCard`）与文件（`SendFile`）三种投递。请求 SHALL 携带必填的**分组**（`Group`，取调用方插件 ID），系统只用该分组的推送应用
 投递；请求 SHALL 携带调用方标识（业务来源）用于日志对账，并可选携带业务单号。业务来源只用于
 日志，MUST NOT 参与选路。
 
@@ -229,13 +228,13 @@ MUST NOT 含密钥）；构造失败 SHALL 只把该条投递记为失败，不�
 ### Requirement: 对外 HTTP 推送接口与 HMAC 签名鉴权
 
 插件 SHALL 提供对外 HTTP 接口 `POST /x/linapro-lark-push/open/v1/message/text`、
-`POST /x/linapro-lark-push/open/v1/message/file`（FB-7）与 `GET /x/linapro-lark-push/open/v1/status`，
+`POST /x/linapro-lark-push/open/v1/message/file` 与 `GET /x/linapro-lark-push/open/v1/status`，
 供独立外部系统调用。这些接口 MUST NOT 挂载宿主用户会话鉴权与权限点校验，SHALL 由插件自建
-**HMAC-SHA256 签名**校验（FB-3）：调用方持有 `app_key` 与 `secret`，`secret` 只用于本地计算签名、
+**HMAC-SHA256 签名**校验：调用方持有 `app_key` 与 `secret`，`secret` 只用于本地计算签名、
 MUST NOT 在网络上传输。
 
-签名凭据 SHALL 存放在本插件数据表 `plugin_linapro_lark_push_api_key`，由后台管理页维护（FB-5，
-见「签名凭据后台管理」）；系统 MUST NOT 再读取配置键 `plugin.linapro-lark-push.api_keys`。每次请求
+签名凭据 SHALL 存放在本插件数据表 `plugin_linapro_lark_push_api_key`，由后台管理页维护
+（见「签名凭据后台管理」）；凭据不来自配置文件。每次请求
 SHALL 按 `app_key` 直接查询数据表、不做缓存，只匹配**启用且未删除**的凭据；凭据的停用、删除与修改
 SHALL 在下一次请求即生效。命中凭据绑定的分组即本次投递分组。
 
@@ -248,7 +247,7 @@ METHOD + "\n" + PATH + "\n" + CANONICAL_QUERY + "\n" + TIMESTAMP + "\n" + NONCE 
 
 其中 `PATH` 为请求路径（如 `/x/linapro-lark-push/open/v1/message/text`）；`CANONICAL_QUERY`
 为查询参数的规范化形式（按参数名、再按值排序后以 `&` 连接 `urlencode(name)=urlencode(value)`，
-无参数时为空串）。所有对外接口的请求体 MUST NOT 参与签名（FB-8 文件接口、FB-9 文本接口）：末行固定为
+无参数时为空串）。所有对外接口的请求体 MUST NOT 参与签名：末行固定为
 空串的 SHA-256（`e3b0c442…b855`，保留该行以维持待签串结构），签名中间件 MUST NOT 读取请求体。请求体
 （消息内容、文件、收件人）因此不受签名保护，生产部署 MUST 走 HTTPS。签名比对 MUST 使用常量时间比较。
 
@@ -259,27 +258,27 @@ MUST 只能成功使用一次（防重放）：去重状态 SHALL 通过宿主�
 
 系统 MUST 先校验签名、后登记 `nonce`，使未通过认证的请求不产生任何状态变更（不能被用来
 消耗他人正在传输中的 `nonce`）。校验通过后系统 SHALL 以该 `app_key` 绑定的分组投递；
-请求体 MUST NOT 提供分组选择。请求体大小上限由签名之后的按路由上限中间件校验（FB-12，未通过鉴权的请求不读请求体）：文本接口 256 KB，文件接口 31 MB
+请求体 MUST NOT 提供分组选择。请求体大小上限由签名之后的按路由上限中间件校验（未通过鉴权的请求不读请求体）：文本接口 256 KB，文件接口 31 MB
 （30 MB 文件 + 1 MB multipart 封装），超限返回 413；签名中间件不读请求体，处理器 MUST 能读到完整请求体。
 
 所有对外接口的响应体 MUST 使用宿主统一响应结构 `{code, message, data, errorCode, messageKey, messageParams}`
-（FB-12，与后台管理接口一致）：`code` 为 0 表示成功，非 0 时 `errorCode` 为稳定的机器可读错误码，调用方
+（与后台管理接口一致）：`code` 为 0 表示成功，非 0 时 `errorCode` 为稳定的机器可读错误码，调用方
 SHALL 以 `code` 判断成败、以 `errorCode` 判断具体原因，`message` 仅供展示。响应体 SHALL 由宿主统一响应
 中间件包装，签名中间件与处理器 MUST NOT 自行写 JSON。
 
-HTTP 状态码 SHALL 只区分三类，其余一律 **200**、由 `code` / `errorCode` 区分（FB-12）：请求体超限 → **413**
+HTTP 状态码 SHALL 只区分三类，其余一律 **200**、由 `code` / `errorCode` 区分：请求体超限 → **413**
 （`LINAPRO_LARK_PUSH_BODY_TOO_LARGE`）；凭据表、去重存储、推送能力、员工能力或宿主配置不可用 → **503**
 （fail-closed）；服务端推送配置问题（分组无可用推送应用、配置非法）及其它内部错误 → **500**。缺签名头、`app_key`
 未知或已停用、时间戳超出窗口、签名不匹配、`nonce` 重复、参数错误均返回 HTTP 200 与各自不同的 `errorCode`。
 所有响应体 MUST 是可直接解析的 JSON，不得混入 HTTP 状态文本。日志 MUST NOT 记录 `secret` 与签名原文。
 
-投递结果放在 `data` 中，SHALL 只返回结论与失败项（FB-11）：全部成功时 `code` 为 0、`data` 为
+投递结果放在 `data` 中，SHALL 只返回结论与失败项：全部成功时 `code` 为 0、`data` 为
 `{"all_succeeded": true}`；存在失败时返回 HTTP 200、`code` 非 0、`errorCode` 为
-`LINAPRO_LARK_PUSH_SEND_PARTIAL_FAILED`（FB-12，原为 HTTP 502），`data.failed` 逐项给出失败收件人（按请求的寻址
+`LINAPRO_LARK_PUSH_SEND_PARTIAL_FAILED`，`data.failed` 逐项给出失败收件人（按请求的寻址
 方式给 `employee_no` / `user_id` / `chat_id` 之一）与 `lark_code`、`lark_msg`、`lark_req_id`，以便调用方只重试
 失败的收件人；部分失败 MUST NOT 以 `code` 为 0 返回，避免调用方只判 `code` 时把失败当成功。非飞书侧原因的失败项
 `lark_code` 为 0、`lark_msg` 为失败状态（`no_identity` / `user_id_missing` / `collision` / `failed`；工号写错或
-不存在不单列状态，归入 `no_identity`，FB-15）。推送应用、`message_id`、错误详情等逐条明细
+不存在不单列状态，归入 `no_identity`）。推送应用、`message_id`、错误详情等逐条明细
 MUST NOT 出现在响应中，SHALL 记入服务端日志。某人只在部分企业无身份（`no_identity`）是按企业扇出的正常结果，
 MUST NOT 计为失败；只有其在所有企业都无身份时才作为一个失败项返回。
 
@@ -381,8 +380,8 @@ MUST NOT 计为失败；只有其在所有企业都无身份时才作为一个�
 
 ### Requirement: 部署与数据缺陷的告警通道
 
-插件 SHALL 提供一个与业务推送完全独立的告警通道，把部署缺陷与数据缺陷推送到配置的飞书群
-（FB-17）。告警凭据 SHALL 取自独立配置块 `plugin.linapro-lark-push.alert`（`app_id`、`secret_key`、
+插件 SHALL 提供一个与业务推送完全独立的告警通道，把部署缺陷与数据缺陷推送到配置的飞书群。
+告警凭据 SHALL 取自独立配置块 `plugin.linapro-lark-push.alert`（`app_id`、`secret_key`、
 `chat_id`、`interval`），MUST NOT 复用 `push_groups` 中的任何推送应用——`push_groups` 配置非法正是
 需要告警的场景之一，复用会让告警与故障同时失效。
 
@@ -442,10 +441,19 @@ SHALL 静默不告警且不影响推送能力，启动时记录一次提示。
 结构化日志，至少包含请求标识、签名凭据的 `app_key`（不含 `secret`）、推送分组、推送应用标识、工号、投递状态、
 飞书错误码与飞书请求 ID。失败场景 SHALL 记录错误详情。
 
+请求体在框架绑定阶段就失败时（字段类型与 DTO 不符，处理器不会执行），插件 SHALL 另记一条日志，
+含请求标识、路径、凭据标识、错误与请求体摘要；multipart 请求体只记字段值与文件名、大小，
+MUST NOT 记录文件内容。
+
 #### Scenario: 发送失败留下可追溯记录
 
 - **WHEN** 某收件人发送被飞书拒绝
 - **THEN** 日志中包含该次请求的请求标识、推送应用、工号、飞书错误码与飞书请求 ID
+
+#### Scenario: 请求体绑定失败留下可追溯记录
+
+- **WHEN** 调用方提交的 `recipients` 不是数组（如传成字符串），框架在调用控制器前即绑定失败
+- **THEN** 日志中包含该次请求的请求标识、路径、`app_key` 与请求体摘要，便于与调用方核对实际提交内容
 
 #### Scenario: 日志不含密钥
 
@@ -454,7 +462,7 @@ SHALL 静默不告警且不影响推送能力，启动时记录一次提示。
 
 ### Requirement: 签名凭据后台管理
 
-对外 HTTP 接口的签名凭据 SHALL 由后台管理页维护（FB-5），菜单位于宿主「系统设置」目录下，接口挂载
+对外 HTTP 接口的签名凭据 SHALL 由后台管理页维护，菜单位于宿主「系统设置」目录下，接口挂载
 宿主会话鉴权与权限点校验。管理能力 SHALL 包含：分页列表（按名称或 `app_key` 关键字、分组、状态
 过滤）、新增、编辑、启停、删除与查看 `secret`。
 
@@ -462,12 +470,12 @@ SHALL 静默不告警且不影响推送能力，启动时记录一次提示。
 
 - `app_key` SHALL 为 1~64 个字符，仅允许字母、数字、`_`、`-`、`.`，在**未删除**的凭据中唯一；删除后
   同名 `app_key` 可以重新创建。
-- `secret` SHALL 为 16~128 个可见 ASCII 字符。新增时 MUST 填写（FB-13）：管理页打开新增表单时在浏览器本地
-  预填随机值、可修改或重新生成，留空不允许提交；服务端同样校验，留空返回参数错误且不落库，服务端不再生成
+- `secret` SHALL 为 16~128 个可见 ASCII 字符。新增时 MUST 填写：管理页打开新增表单时在浏览器本地
+  预填随机值、可修改或重新生成，留空不允许提交；服务端同样校验，留空返回参数错误且不落库，服务端不生成
   `secret`。编辑时留空表示保持原值。
 - 分组 SHALL 取自 `push_groups` 中已配置的分组名，保存时校验分组存在；管理页的分组下拉 SHALL 从同一
   配置读取。
-- 群聊 `chat_id` SHALL 可选（FB-10），格式为 `oc_` 开头、仅含字母与数字；群聊推送应用 SHALL 仅在配置了
+- 群聊 `chat_id` SHALL 可选，格式为 `oc_` 开头、仅含字母与数字；群聊推送应用 SHALL 仅在配置了
   `chat_id` 时可填：分组只有一个推送应用时可留空，有多个时必填，且 MUST 属于绑定分组；保存时校验，不合法
   返回参数错误且不落库。管理页的推送应用下拉 SHALL 取自同一 `push_groups` 配置（不含密钥）。
 - 状态 SHALL 使用宿主字典 `sys_normal_disable`（`1` 正常、`0` 停用）。
@@ -524,8 +532,8 @@ SHALL 静默不告警且不影响推送能力，启动时记录一次提示。
 
 ### Requirement: 群聊投递
 
-推送 SHALL 支持以群聊为收件人（FB-6）：收件人给出 `chat_id`，并可给出 `push_app_id` 指明由请求分组内
-哪个推送应用发送。对外 HTTP 接口的群聊收件人 MUST 只来自签名凭据的后台配置（FB-10），调用方 MUST NOT
+推送 SHALL 支持以群聊为收件人：收件人给出 `chat_id`，并可给出 `push_app_id` 指明由请求分组内
+哪个推送应用发送。对外 HTTP 接口的群聊收件人 MUST 只来自签名凭据的后台配置，调用方 MUST NOT
 在请求中指定群聊；进程内门面调用方（同进程插件代码）可直接给出群聊收件人。群聊收件人 MUST NOT 按工号扇出，每个群聊只经**一个**推送应用投递一次：
 
 - 分组内只有一个可用推送应用时，`push_app_id` 可省略，默认用该应用；
@@ -578,7 +586,7 @@ SHALL 静默不告警且不影响推送能力，启动时记录一次提示。
 
 ### Requirement: 文件与图片推送
 
-推送 SHALL 支持发送文件（FB-7）。对外 HTTP 接口 `POST /x/linapro-lark-push/open/v1/message/file` SHALL
+推送 SHALL 支持发送文件。对外 HTTP 接口 `POST /x/linapro-lark-push/open/v1/message/file` SHALL
 接收 `multipart/form-data`：`file`（必填）、`recipients`（JSON 数组字符串，元素同文本接口；凭据配置了群聊时
 可省略）、`biz_ref`（可选）；出现其它表单字段（含 `chats`）SHALL 以 `LINAPRO_LARK_PUSH_INVALID_PARAM` 拒绝（HTTP 200）。群聊取自签名凭据配置（见「群聊投递」）。请求体不参与签名（同文本接口，
 见上文签名鉴权要求），调用方无需为签名读取整个文件；请求体超过 31 MB SHALL 返回 413。门面 SHALL 提供 `SendFile`（文件名 + 文件内容）。
